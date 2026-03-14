@@ -234,7 +234,7 @@ function HeroSection({ total, onExplore }: { total: number; onExplore: () => voi
         </div>
 
         <h1 className="nk-hero__title">
-          <span className="nk-hero__title-naka">NAKA <span className="nk-hero__title-ma">MA</span></span>
+          <span className="nk-hero__title-naka">NAKAMA</span>
          
           <span className="nk-hero__title-universe">UNIVERSE</span>
         </h1>
