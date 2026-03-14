@@ -22,8 +22,8 @@ import {
   AlertCircle, Zap, Hash,
 } from "lucide-react";
 
-const API    = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL  || "http://localhost:5000";
+const API    =  "https://nakama-vercel-backend.vercel.app";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL  || "https://nakama-vercel-backend.vercel.app";
 
 // ─── Types ──────────────────────────────────────────────────
 interface MyCommunity {
