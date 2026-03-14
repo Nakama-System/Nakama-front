@@ -60,7 +60,7 @@ function HeroSection() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:5000/homestats");
+        const res = await fetch("https://nakama-vercel-backend.vercel.app/homestats");
         if (!res.ok) throw new Error("Network response was not ok");
         const data = await res.json();
         setStats({
