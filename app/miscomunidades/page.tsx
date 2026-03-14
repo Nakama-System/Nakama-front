@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/authContext";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 interface MiComunidad {
   _id: string;
