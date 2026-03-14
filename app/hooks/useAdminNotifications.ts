@@ -28,7 +28,7 @@ export interface AdminNotif {
 
 // ─── Config ───────────────────────────────────────────────
 const STORAGE_KEY = "nakama_admin_notifs";
-const SERVER_URL  = process.env.NEXT_PUBLIC_API_URL    || "http://localhost:5000";
+const SERVER_URL  =  "https://nakama-vercel-backend.vercel.app";
 const SOCKET_URL  = process.env.NEXT_PUBLIC_SOCKET_URL || SERVER_URL;
 const NOTIF_PATH  = "/notifications";
 const NOTIF_BASE  = `${SERVER_URL}${NOTIF_PATH}`;
