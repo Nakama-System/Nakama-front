@@ -28,7 +28,7 @@ import type { MovieItem } from "../../types/movie";
 import "../../styles/reproductor.css";
 
 /* ── Config ───────────────────────────────────────────── */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE ="https://nakama-vercel-backend.vercel.app";
 const SPEEDS   = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 type Speed     = typeof SPEEDS[number];
 
