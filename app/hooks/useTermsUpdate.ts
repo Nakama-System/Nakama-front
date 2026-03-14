@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const API = "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 interface TermsData {
   termsVersion:   string;
