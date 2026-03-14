@@ -5,12 +5,15 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
 
-/* ─── Base: evita fondo blanco al recargar ───────────────── */
+/* ─── Base ───────────────────────────────────────────────── */
 html, body {
   background: #06060a !important;
   color: #f0eff4;
   margin: 0;
   padding: 0;
+  /* FIX PRINCIPAL: evita scroll horizontal en toda la página */
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* ─── Tokens ─────────────────────────────────────────────── */
@@ -42,19 +45,26 @@ html, body {
   min-height: 100vh;
   font-size: 14px;
   line-height: 1.5;
+  /* FIX: no permite que el contenido se desborde */
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* ─── Topbar / Breadcrumb ────────────────────────────────── */
+/* ─── Topbar ─────────────────────────────────────────────── */
 .rp-topbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--rp-border);
   background: var(--rp-bg);
   flex-shrink: 0;
   min-height: 44px;
-  overflow: hidden;           /* evita que se corte hacia afuera */
+  /* FIX: no se desborda */
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .rp-topbar__back {
@@ -70,10 +80,6 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   transition: color var(--rp-transition), background var(--rp-transition);
-}
-
-/* el link <a> de inicio hereda el mismo estilo que el button */
-.rp-topbar__back {
   text-decoration: none;
 }
 
@@ -86,8 +92,9 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;               /* permite comprimir si no hay espacio */
+  min-width: 0;
   flex: 1;
+  overflow: hidden; /* FIX: evita que el breadcrumb desborde */
 }
 
 .rp-topbar__crumb-item {
@@ -106,18 +113,16 @@ html, body {
 
 .rp-topbar__crumb-item:hover { color: var(--rp-text); }
 
-/* <a> como crumb-item: sin subrayado, hereda color */
 a.rp-topbar__crumb-item {
   text-decoration: none;
   color: inherit;
 }
 
-/* el último ítem del breadcrumb (título activo) */
 .rp-topbar__crumb-item--active {
   color: var(--rp-text);
   font-weight: 500;
   cursor: default;
-  flex-shrink: 2;             /* puede comprimirse más que los anteriores */
+  flex-shrink: 2;
 }
 
 .rp-topbar__crumb-sep {
@@ -128,25 +133,18 @@ a.rp-topbar__crumb-item {
   line-height: 1;
 }
 
-/* ─── Layout two-column ─────────────────────────────────────*/
+/* ─── Layout ─────────────────────────────────────────────── */
 .rp-layout {
   display: grid;
   grid-template-columns: 1fr 360px;
   grid-template-rows: auto 1fr;
   gap: 0;
   max-width: 1440px;
+  /* FIX: limita el ancho al viewport */
+  width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   min-height: 100vh;
-}
-
-@media (max-width: 1100px) {
-  .rp-layout {
-    grid-template-columns: 1fr;
-  }
-  .rp-sidebar {
-    border-left: none !important;
-    border-top: 1px solid var(--rp-border) !important;
-  }
 }
 
 /* ─── Main column ────────────────────────────────────────── */
@@ -155,6 +153,9 @@ a.rp-topbar__crumb-item {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--rp-border);
+  /* FIX: nunca desborda su columna */
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* ─── Player wrapper ─────────────────────────────────────── */
@@ -163,6 +164,9 @@ a.rp-topbar__crumb-item {
   width: 100%;
   background: #000;
   aspect-ratio: 16 / 9;
+  /* FIX: nunca más ancho que el contenedor */
+  max-width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
 }
 
@@ -173,9 +177,10 @@ a.rp-topbar__crumb-item {
   object-fit: contain;
   display: block;
   cursor: pointer;
+  max-width: 100%; /* FIX */
 }
 
-/* ─── Idle overlay (poster + play) ─────────────────────── */
+/* ─── Idle overlay ──────────────────────────────────────── */
 .rp-idle-overlay {
   position: absolute;
   inset: 0;
@@ -257,6 +262,9 @@ a.rp-topbar__crumb-item {
   transform: translateY(0);
   transition: opacity var(--rp-transition), transform var(--rp-transition);
   z-index: 10;
+  /* FIX: no desborda el player */
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .rp-player-wrap.hide-controls .rp-controls {
@@ -273,6 +281,7 @@ a.rp-topbar__crumb-item {
   align-items: center;
   cursor: pointer;
   padding: 0 14px;
+  box-sizing: border-box; /* FIX */
 }
 
 .rp-progress__track {
@@ -318,7 +327,6 @@ a.rp-topbar__crumb-item {
 
 .rp-progress:hover .rp-progress__thumb { transform: translate(-50%, -50%) scale(1); }
 
-/* ─── Time tooltip on progress ──────────────────────────── */
 .rp-progress__tooltip {
   position: absolute;
   bottom: 20px;
@@ -345,6 +353,10 @@ a.rp-topbar__crumb-item {
   gap: 2px;
   padding: 4px 10px 6px;
   height: var(--rp-ctrl-h);
+  /* FIX: no desborda el player */
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 .rp-ctrl-btn {
@@ -368,7 +380,6 @@ a.rp-topbar__crumb-item {
 }
 
 .rp-ctrl-btn:active { transform: scale(0.92); }
-
 .rp-ctrl-btn.active { color: var(--rp-accent); }
 
 /* ─── Volume cluster ────────────────────────────────────── */
@@ -423,7 +434,6 @@ a.rp-topbar__crumb-item {
 
 .rp-time strong { color: #fff; }
 
-/* ─── Spacer ─────────────────────────────────────────────── */
 .rp-ctrl-spacer { flex: 1; }
 
 /* ─── Quality badge ─────────────────────────────────────── */
@@ -487,6 +497,10 @@ a.rp-topbar__crumb-item {
 .rp-info {
   padding: 20px 24px;
   border-bottom: 1px solid var(--rp-border);
+  /* FIX */
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 .rp-info__top {
@@ -495,6 +509,8 @@ a.rp-topbar__crumb-item {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 12px;
+  /* FIX: permite wrap en mobile */
+  flex-wrap: wrap;
 }
 
 .rp-info__title {
@@ -503,12 +519,16 @@ a.rp-topbar__crumb-item {
   letter-spacing: 2px;
   color: var(--rp-text);
   line-height: 1;
+  /* FIX: texto largo no desborda */
+  word-break: break-word;
+  min-width: 0;
 }
 
 .rp-info__actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap; /* FIX: botones no se salen */
 }
 
 .rp-info__btn {
@@ -524,6 +544,7 @@ a.rp-topbar__crumb-item {
   font-size: 12px;
   cursor: pointer;
   transition: all var(--rp-transition);
+  white-space: nowrap; /* FIX */
 }
 
 .rp-info__btn:hover {
@@ -546,7 +567,7 @@ a.rp-topbar__crumb-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* FIX: chips no desbordan */
   margin-bottom: 12px;
 }
 
@@ -558,6 +579,7 @@ a.rp-topbar__crumb-item {
   padding: 3px 9px;
   border-radius: 3px;
   border: 1px solid transparent;
+  white-space: nowrap; /* FIX */
 }
 
 .rp-info__sep {
@@ -565,6 +587,7 @@ a.rp-topbar__crumb-item {
   height: 3px;
   border-radius: 50%;
   background: var(--rp-text-dim);
+  flex-shrink: 0;
 }
 
 .rp-info__desc {
@@ -572,6 +595,9 @@ a.rp-topbar__crumb-item {
   color: var(--rp-text-muted);
   line-height: 1.65;
   max-width: 680px;
+  /* FIX: descripción no desborda */
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .rp-info__views {
@@ -583,13 +609,16 @@ a.rp-topbar__crumb-item {
   gap: 4px;
 }
 
-/* ─── Star rating (under player) ───────────────────────── */
+/* ─── Star rating ───────────────────────────────────────── */
 .rp-rating-row {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
   border-bottom: 1px solid var(--rp-border);
+  flex-wrap: wrap; /* FIX */
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .rp-rating-label {
@@ -597,6 +626,7 @@ a.rp-topbar__crumb-item {
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--rp-text-dim);
+  white-space: nowrap;
 }
 
 .rp-stars {
@@ -633,6 +663,7 @@ a.rp-topbar__crumb-item {
 .rp-rating-count {
   font-size: 11px;
   color: var(--rp-text-muted);
+  white-space: nowrap;
 }
 
 .rp-rating-voted {
@@ -641,6 +672,7 @@ a.rp-topbar__crumb-item {
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
 /* ─── Sidebar ────────────────────────────────────────────── */
@@ -651,10 +683,9 @@ a.rp-topbar__crumb-item {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-@media (max-width: 1100px) {
-  .rp-sidebar { grid-column: 1; }
+  /* FIX: sidebar no desborda */
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .rp-sidebar__head {
@@ -664,6 +695,7 @@ a.rp-topbar__crumb-item {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .rp-sidebar__title {
@@ -676,17 +708,19 @@ a.rp-topbar__crumb-item {
 .rp-sidebar__count {
   font-size: 11px;
   color: var(--rp-text-dim);
+  white-space: nowrap;
 }
 
 .rp-sidebar__list {
   overflow-y: auto;
+  overflow-x: hidden; /* FIX: sin scroll horizontal en la lista */
   flex: 1;
 }
 
 .rp-sidebar__list::-webkit-scrollbar { width: 3px; }
 .rp-sidebar__list::-webkit-scrollbar-thumb { background: var(--rp-border2); }
 
-/* ─── Related card en sidebar ── */
+/* ─── Related card ──────────────────────────────────────── */
 .rp-related-card {
   display: grid;
   grid-template-columns: 100px minmax(0, 1fr);
@@ -695,22 +729,27 @@ a.rp-topbar__crumb-item {
   cursor: pointer;
   border-bottom: 1px solid var(--rp-border);
   transition: background var(--rp-transition);
-  /* SIN position:relative aquí para que el badge quede dentro del thumb */
   text-decoration: none;
+  /* FIX: la card no desborda su contenedor */
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
 }
 
 .rp-related-card:hover { background: var(--rp-surface); }
-
 .rp-related-card.active { background: var(--rp-surface2); }
 
 .rp-related-card__thumb {
-  position: relative;          /* el badge se posiciona relativo al thumb */
+  position: relative;
   border-radius: var(--rp-radius);
   overflow: hidden;
   aspect-ratio: 16/9;
   background: var(--rp-surface2);
   flex-shrink: 0;
-  align-self: start;           /* evita que se estire verticalmente */
+  align-self: start;
+  /* FIX: nunca más ancho que su columna */
+  width: 100%;
+  max-width: 100%;
 }
 
 .rp-related-card__img {
@@ -720,7 +759,6 @@ a.rp-topbar__crumb-item {
   display: block;
 }
 
-/* ── Preview video on hover ── */
 .rp-related-card__preview {
   position: absolute;
   inset: 0;
@@ -758,10 +796,9 @@ a.rp-topbar__crumb-item {
   padding: 1px 5px;
   border-radius: 3px;
   font-family: var(--rp-font-body);
+  white-space: nowrap;
 }
 
-/* min-width:0 + overflow:hidden garantizan que el texto nunca
-   desborde la columna. align-self:start evita estiramiento. */
 .rp-related-card__body {
   display: flex;
   flex-direction: column;
@@ -783,7 +820,7 @@ a.rp-topbar__crumb-item {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.35;
-  word-break: break-word; /* ← FIX: corta palabras muy largas */
+  word-break: break-word;
 }
 
 .rp-related-card__meta {
@@ -792,12 +829,14 @@ a.rp-topbar__crumb-item {
   gap: 5px;
   font-size: 11px;
   color: var(--rp-text-muted);
+  flex-wrap: wrap; /* FIX: meta no desborda */
 }
 
 .rp-related-card__cat {
   font-size: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .rp-related-card__views {
@@ -807,13 +846,11 @@ a.rp-topbar__crumb-item {
   align-items: center;
   gap: 3px;
   margin-top: 2px;
+  white-space: nowrap;
 }
 
-/* Active playing indicator */
 .rp-related-card.active .rp-related-card__title { color: var(--rp-accent); }
 
-/* Badge "REPRODUCIENDO" — vive dentro de __thumb (position:relative),
-   NO dentro del card entero. Así no tapa el body de texto. */
 .rp-now-playing-badge {
   position: absolute;
   top: 4px;
@@ -833,7 +870,7 @@ a.rp-topbar__crumb-item {
   text-overflow: ellipsis;
 }
 
-/* ─── Mini-preview tooltip on card hover ───────────────── */
+/* ─── Mini-preview tooltip ──────────────────────────────── */
 .rp-mini-preview {
   position: fixed;
   z-index: 9999;
@@ -847,6 +884,8 @@ a.rp-topbar__crumb-item {
   opacity: 0;
   transform: translateY(6px) scale(0.97);
   transition: opacity 0.2s, transform 0.2s;
+  /* FIX: el tooltip nunca causa overflow */
+  max-width: calc(100vw - 32px);
 }
 
 .rp-mini-preview.visible {
@@ -921,24 +960,126 @@ a.rp-topbar__crumb-item {
 
 .rp-error__icon { color: var(--rp-accent); }
 
-/* ─── Fullscreen adjustments ─────────────────────────────── */
+/* ─── Fullscreen ─────────────────────────────────────────── */
 .rp-player-wrap:fullscreen { aspect-ratio: unset; height: 100vh; }
 .rp-player-wrap:-webkit-full-screen { aspect-ratio: unset; height: 100vh; }
 
-/* ─── Responsive ────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .rp-info { padding: 14px 16px; }
-  .rp-info__title { font-size: 22px; }
-  .rp-ctrl-row { padding: 2px 6px 4px; }
-  .rp-ctrl-btn { width: 30px; height: 30px; }
-  .rp-rating-row { padding: 12px 16px; }
-  .rp-related-card {
-    grid-template-columns: 80px minmax(0, 1fr); /* ← FIX mobile */
-    padding: 10px 12px;
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── ≤ 1100px: sidebar debajo ──────────────────────────── */
+@media (max-width: 1100px) {
+  .rp-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .rp-main {
+    grid-row: auto;
+    border-right: none;
+  }
+
+  .rp-sidebar {
+    grid-column: 1;
+    grid-row: auto;
+    border-left: none;
+    border-top: 1px solid var(--rp-border);
+    /* altura máxima para no ocupar toda la pantalla */
+    max-height: 60vh;
   }
 }
 
+/* ── ≤ 768px: mobile ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rp-info {
+    padding: 14px 16px;
+  }
+
+  .rp-info__title {
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .rp-info__top {
+    gap: 10px;
+  }
+
+  .rp-rating-row {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .rp-ctrl-row {
+    padding: 2px 6px 4px;
+    height: 44px;
+  }
+
+  .rp-ctrl-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* En mobile el volumen siempre visible y más corto */
+  .rp-vol-cluster:hover .rp-vol-slider-wrap,
+  .rp-vol-cluster:focus-within .rp-vol-slider-wrap {
+    width: 52px;
+  }
+
+  .rp-vol-slider { width: 46px; }
+
+  /* Ocultar elementos secundarios del player en pantallas muy chicas */
+  .rp-quality-badge { display: none; }
+
+  .rp-related-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .rp-sidebar {
+    max-height: 50vh;
+  }
+
+  .rp-topbar {
+    padding: 8px 12px;
+  }
+}
+
+/* ── ≤ 480px: mobile pequeño ────────────────────────────── */
 @media (max-width: 480px) {
-  .rp-info__actions { flex-wrap: wrap; }
-  .rp-info__meta { gap: 6px; }
+  .rp-info__actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .rp-info__meta {
+    gap: 6px;
+  }
+
+  .rp-info__title {
+    font-size: 18px;
+  }
+
+  .rp-related-card {
+    grid-template-columns: 76px minmax(0, 1fr);
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .rp-ctrl-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Ocultar skip buttons en pantallas muy pequeñas */
+  .rp-ctrl-btn--skip { display: none; }
+
+  .rp-time {
+    font-size: 11px;
+  }
+
+  .rp-sidebar {
+    max-height: 45vh;
+  }
 }
