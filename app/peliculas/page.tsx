@@ -16,36 +16,67 @@ import {
   Film, Flame, Compass, Laugh, Heart, Home,
   Layers, AlertCircle, CheckCircle2, Info,
   MessageCircle, Send, Twitter, Facebook, Eye, House,
+  Swords, BookOpen, Ghost, Rocket, Clapperboard, FileVideo,
 } from "lucide-react";
+
 
 /* ══════════════════════════════════════════════════
    CONFIG
    ══════════════════════════════════════════════════ */
-const API_BASE  = "https://nakama-vercel-backend.vercel.app";
+const API_BASE  = process.env.NEXT_PUBLIC_API_URL || "https://nakama-vercel-backend.vercel.app";
 const PAGE_SIZE = 9;
+const NEXT_PUBLIC_SITE_URL = "https://nakama-front.vercel.app"
 
+
+// ── URL base para compartir ───────────────────────────────
+const SHARE_BASE =
+
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (typeof window !== "undefined" && window.location.origin !== "http://localhost:3000"
+    ? window.location.origin
+    : "http://localhost:3000");
+
+// ── Categorías unificadas ─────────────────────────────────
 const CATEGORIES = [
-  { key: "all",       label: "Todas",     Icon: Layers  },
-  { key: "accion",    label: "Acción",    Icon: Flame   },
-  { key: "aventura",  label: "Aventura",  Icon: Compass },
-  { key: "diversion", label: "Diversión", Icon: Laugh   },
-  { key: "amor",      label: "Amor",      Icon: Heart   },
-  { key: "familia",   label: "Familia",   Icon: Home    },
+  { key: "all",        label: "Todas",       Icon: Layers      },
+  { key: "accion",     label: "Acción",      Icon: Flame       },
+  { key: "aventura",   label: "Aventura",    Icon: Compass     },
+  { key: "comedia",    label: "Comedia",     Icon: Laugh       },
+  { key: "drama",      label: "Drama",       Icon: BookOpen    },
+  { key: "terror",     label: "Terror",      Icon: Ghost       },
+  { key: "romance",    label: "Romance",     Icon: Heart       },
+  { key: "sci-fi",     label: "Sci-Fi",      Icon: Rocket      },
+  { key: "animacion",  label: "Animación",   Icon: Clapperboard},
+  { key: "documental", label: "Documental",  Icon: FileVideo   },
+  { key: "diversion",  label: "Diversión",   Icon: Laugh       },
+  { key: "amor",       label: "Amor",        Icon: Heart       },
+  { key: "familia",    label: "Familia",     Icon: Home        },
+  { key: "otro",       label: "Otro",        Icon: Layers      },
 ] as const;
 
+type CategoryKey = typeof CATEGORIES[number]["key"];
+
 const CAT_PALETTE: Record<string, { accent: string; glow: string; bg: string }> = {
-  accion:    { accent: "#e63946", glow: "rgba(230,57,70,.18)",   bg: "rgba(230,57,70,.07)"   },
-  aventura:  { accent: "#ff9f43", glow: "rgba(255,159,67,.18)",  bg: "rgba(255,159,67,.07)"  },
-  diversion: { accent: "#26de81", glow: "rgba(38,222,129,.18)",  bg: "rgba(38,222,129,.07)"  },
-  amor:      { accent: "#fd79a8", glow: "rgba(253,121,168,.18)", bg: "rgba(253,121,168,.07)" },
-  familia:   { accent: "#74b9ff", glow: "rgba(116,185,255,.18)", bg: "rgba(116,185,255,.07)" },
+  accion:     { accent: "#e63946", glow: "rgba(230,57,70,.18)",   bg: "rgba(230,57,70,.07)"   },
+  aventura:   { accent: "#ff9f43", glow: "rgba(255,159,67,.18)",  bg: "rgba(255,159,67,.07)"  },
+  comedia:    { accent: "#26de81", glow: "rgba(38,222,129,.18)",  bg: "rgba(38,222,129,.07)"  },
+  drama:      { accent: "#a29bfe", glow: "rgba(162,155,254,.18)", bg: "rgba(162,155,254,.07)" },
+  terror:     { accent: "#636e72", glow: "rgba(99,110,114,.18)",  bg: "rgba(99,110,114,.07)"  },
+  romance:    { accent: "#fd79a8", glow: "rgba(253,121,168,.18)", bg: "rgba(253,121,168,.07)" },
+  "sci-fi":   { accent: "#00cec9", glow: "rgba(0,206,201,.18)",   bg: "rgba(0,206,201,.07)"   },
+  animacion:  { accent: "#fdcb6e", glow: "rgba(253,203,110,.18)", bg: "rgba(253,203,110,.07)" },
+  documental: { accent: "#b2bec3", glow: "rgba(178,190,195,.18)", bg: "rgba(178,190,195,.07)" },
+  diversion:  { accent: "#55efc4", glow: "rgba(85,239,196,.18)",  bg: "rgba(85,239,196,.07)"  },
+  amor:       { accent: "#e84393", glow: "rgba(232,67,147,.18)",  bg: "rgba(232,67,147,.07)"  },
+  familia:    { accent: "#74b9ff", glow: "rgba(116,185,255,.18)", bg: "rgba(116,185,255,.07)" },
+  otro:       { accent: "#dfe6e9", glow: "rgba(223,230,233,.18)", bg: "rgba(223,230,233,.07)" },
 };
 
 // ── Clasificación por edad ────────────────────────────────
 type AgeRating = "all" | "+10" | "+13" | "+18";
 
 const AGE_RATING_META: Record<AgeRating, { label: string; color: string; short: string }> = {
-  all:  { label: "Todo público", color: "#22c55e", short: "ATP" },
+  all:   { label: "Todo público",  color: "#22c55e", short: "ATP" },
   "+10": { label: "Mayores de 10", color: "#f59e0b", short: "+10" },
   "+13": { label: "Mayores de 13", color: "#f97316", short: "+13" },
   "+18": { label: "Mayores de 18", color: "#ef4444", short: "+18" },
@@ -59,7 +90,7 @@ const AGE_RATING_FILTERS: { key: AgeRating; label: string }[] = [
 ];
 
 /* ══════════════════════════════════════════════════
-   TYPES (locales, no compartidos)
+   TYPES
    ══════════════════════════════════════════════════ */
 interface ToastItem {
   id: number; msg: string; type: "success" | "error" | "info";
@@ -94,7 +125,20 @@ async function apiFetchMovies(
 async function apiShareMeta(id: string): Promise<ShareMeta> {
   const res = await fetch(`${API_BASE}/moviesup/${id}/share`);
   if (!res.ok) throw new Error("Error al obtener metadatos");
-  return res.json() as Promise<ShareMeta>;
+  const data = await res.json() as ShareMeta;
+
+  // Reemplaza cualquier localhost:3000 por la URL real del sitio
+  const fixUrl = (u: string) =>
+    u.replace(/https?:\/\/localhost:3000/g, SHARE_BASE);
+
+  return {
+    ...data,
+    url:      fixUrl(data.url),
+    whatsapp: fixUrl(data.whatsapp),
+    telegram: fixUrl(data.telegram),
+    twitter:  fixUrl(data.twitter),
+    facebook: fixUrl(data.facebook),
+  };
 }
 
 async function apiVote(id: string, rating: number, token: string | null) {
@@ -115,7 +159,7 @@ async function apiDownload(id: string, token: string | null) {
 }
 
 /* ══════════════════════════════════════════════════
-   AgeRatingBadge — badge visible en la card
+   AgeRatingBadge
    ══════════════════════════════════════════════════ */
 function AgeRatingBadge({ value }: { value: AgeRating }) {
   if (!value || value === "all") return null;
@@ -191,8 +235,8 @@ function HeroSection({ total, onExplore }: { total: number; onExplore: () => voi
         </div>
 
         <h1 className="nk-hero__title">
-          <span className="nk-hero__title-naka">NAKA</span>
-          <span className="nk-hero__title-ma">MA</span>
+          <span className="nk-hero__title-naka">NAKA <span className="nk-hero__title-ma">MA</span></span>
+         
           <span className="nk-hero__title-universe">UNIVERSE</span>
         </h1>
 
@@ -202,10 +246,10 @@ function HeroSection({ total, onExplore }: { total: number; onExplore: () => voi
 
         <div className="nk-hero__stats">
           {[
-            { val: total > 0 ? `${total}+` : "500+", lbl: "Películas" },
-            { val: "12K",  lbl: "Episodios" },
-            { val: "HD",   lbl: "Calidad"   },
-            { val: "0",    lbl: "Anuncios"  },
+            { val: total > 0 ? `${total}+` : "500+", lbl: "Películas"  },
+            { val: "12K",                             lbl: "Episodios"  },
+            { val: "HD",                              lbl: "Calidad"    },
+            { val: "0",                               lbl: "Anuncios"   },
           ].map((s, i) => (
             <div key={i} className="nk-hero__stat">
               <span className="nk-hero__stat-val">{s.val}</span>
@@ -220,8 +264,8 @@ function HeroSection({ total, onExplore }: { total: number; onExplore: () => voi
             return (
               <span key={key} className="nk-hero__cat-pill" style={{
                 borderColor: p?.accent + "44",
-                color: p?.accent,
-                background: p?.bg,
+                color:       p?.accent,
+                background:  p?.bg,
               }}>
                 <Icon size={10} /> {label}
               </span>
@@ -436,7 +480,6 @@ function MovieCard({ movie, token, isAuthenticated, onShare, onToast }: {
         )}
         <div className="nk-card__img-overlay" />
 
-        {/* ── Badge de clasificación por edad ── */}
         <AgeRatingBadge value={ageRating} />
 
         <span className="nk-card__cat-badge"
@@ -581,7 +624,7 @@ export default function PeliculasPage() {
   const [error,      setError]      = useState<string | null>(null);
 
   const [category,  setCategory]  = useState("all");
-  const [ageRating, setAgeRating] = useState<AgeRating>("all");   // ← nuevo filtro
+  const [ageRating, setAgeRating] = useState<AgeRating>("all");
   const [search,    setSearch]    = useState("");
   const [sort,      setSort]      = useState("newest");
   const [page,      setPage]      = useState(1);
@@ -626,9 +669,9 @@ export default function PeliculasPage() {
     }, 420);
   };
 
-  const handleCategory  = (cat: string)    => { setCategory(cat);    setPage(1); };
-  const handleAgeRating = (age: AgeRating) => { setAgeRating(age);   setPage(1); };
-  const handleSort      = (s: string)      => { setSort(s);          setPage(1); };
+  const handleCategory  = (cat: string)    => { setCategory(cat);  setPage(1); };
+  const handleAgeRating = (age: AgeRating) => { setAgeRating(age); setPage(1); };
+  const handleSort      = (s: string)      => { setSort(s);        setPage(1); };
 
   const addToast = (msg: string, type: ToastItem["type"] = "success") => {
     const id = Date.now();
@@ -708,7 +751,7 @@ export default function PeliculasPage() {
           })}
         </div>
 
-        {/* ── Filtros de clasificación por edad ── */}
+        {/* Filtros de clasificación por edad */}
         <div className="nk-filters" style={{ marginTop: 6 }}>
           {AGE_RATING_FILTERS.map(({ key, label }) => {
             const meta   = AGE_RATING_META[key];
