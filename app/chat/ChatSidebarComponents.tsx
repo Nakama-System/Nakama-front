@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { UserAvatar, type Conversation } from "./ChatUIComponents";
 
-const API = "https://nakama-vercel-backend.vercel.app";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://nakama-backend-render.onrender.com";
 
 // ── Tipos ─────────────────────────────────────────────────
 export interface UserSuggestion {
