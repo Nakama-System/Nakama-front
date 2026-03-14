@@ -1,0 +1,944 @@
+/* ═══════════════════════════════════════════════════════════
+   styles/reproductor.css — Nakama · Video Player
+   Aesthetic: dark-cinema industrial · consistent with movies.css
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* ─── Base: evita fondo blanco al recargar ───────────────── */
+html, body {
+  background: #06060a !important;
+  color: #f0eff4;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Tokens ─────────────────────────────────────────────── */
+:root {
+  --rp-bg:          #06060a;
+  --rp-surface:     #0f0f15;
+  --rp-surface2:    #15151f;
+  --rp-border:      #1e1e2e;
+  --rp-border2:     #2a2a3e;
+  --rp-accent:      #e63946;
+  --rp-accent2:     #ffd60a;
+  --rp-text:        #f0eff4;
+  --rp-text-muted:  #8080a0;
+  --rp-text-dim:    #404055;
+  --rp-overlay:     rgba(6,6,10,0.92);
+  --rp-ctrl-h:      52px;
+  --rp-font-display:'Bebas Neue', sans-serif;
+  --rp-font-body:   'DM Sans', sans-serif;
+  --rp-radius:      6px;
+  --rp-radius-lg:   12px;
+  --rp-transition:  0.18s ease;
+}
+
+/* ─── Page ────────────────────────────────────────────────── */
+.rp-page {
+  font-family: var(--rp-font-body);
+  background: var(--rp-bg);
+  color: var(--rp-text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ─── Topbar / Breadcrumb ────────────────────────────────── */
+.rp-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--rp-border);
+  background: var(--rp-bg);
+  flex-shrink: 0;
+  min-height: 44px;
+  overflow: hidden;           /* evita que se corte hacia afuera */
+}
+
+.rp-topbar__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--rp-radius);
+  border: none;
+  background: transparent;
+  color: var(--rp-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--rp-transition), background var(--rp-transition);
+}
+
+/* el link <a> de inicio hereda el mismo estilo que el button */
+.rp-topbar__back {
+  text-decoration: none;
+}
+
+.rp-topbar__back:hover {
+  color: var(--rp-text);
+  background: rgba(255,255,255,0.06);
+}
+
+.rp-topbar__crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;               /* permite comprimir si no hay espacio */
+  flex: 1;
+}
+
+.rp-topbar__crumb-item {
+  font-family: var(--rp-font-body);
+  font-size: 12px;
+  color: var(--rp-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--rp-transition);
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.rp-topbar__crumb-item:hover { color: var(--rp-text); }
+
+/* <a> como crumb-item: sin subrayado, hereda color */
+a.rp-topbar__crumb-item {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* el último ítem del breadcrumb (título activo) */
+.rp-topbar__crumb-item--active {
+  color: var(--rp-text);
+  font-weight: 500;
+  cursor: default;
+  flex-shrink: 2;             /* puede comprimirse más que los anteriores */
+}
+
+.rp-topbar__crumb-sep {
+  color: var(--rp-text-dim);
+  font-size: 11px;
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+}
+
+/* ─── Layout two-column ─────────────────────────────────────*/
+.rp-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  max-width: 1440px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+@media (max-width: 1100px) {
+  .rp-layout {
+    grid-template-columns: 1fr;
+  }
+  .rp-sidebar {
+    border-left: none !important;
+    border-top: 1px solid var(--rp-border) !important;
+  }
+}
+
+/* ─── Main column ────────────────────────────────────────── */
+.rp-main {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--rp-border);
+}
+
+/* ─── Player wrapper ─────────────────────────────────────── */
+.rp-player-wrap {
+  position: relative;
+  width: 100%;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+/* ─── Video element ─────────────────────────────────────── */
+.rp-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  cursor: pointer;
+}
+
+/* ─── Idle overlay (poster + play) ─────────────────────── */
+.rp-idle-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  transition: opacity var(--rp-transition);
+  cursor: pointer;
+  z-index: 5;
+}
+
+.rp-idle-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rp-idle-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+}
+
+.rp-idle-play {
+  position: relative;
+  z-index: 2;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--rp-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 0 40px rgba(230,57,70,0.45);
+  transition: transform var(--rp-transition);
+  pointer-events: none;
+}
+
+/* ─── Buffering spinner ─────────────────────────────────── */
+.rp-buffering {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.rp-buffering.visible { opacity: 1; }
+
+.rp-buffering__ring {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255,255,255,0.12);
+  border-top-color: var(--rp-accent);
+  border-radius: 50%;
+  animation: rp-spin 0.9s linear infinite;
+}
+
+@keyframes rp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Controls bar ──────────────────────────────────────── */
+.rp-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  padding: 0 0 4px;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+  transform: translateY(0);
+  transition: opacity var(--rp-transition), transform var(--rp-transition);
+  z-index: 10;
+}
+
+.rp-player-wrap.hide-controls .rp-controls {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+/* ─── Progress bar ──────────────────────────────────────── */
+.rp-progress {
+  position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0 14px;
+}
+
+.rp-progress__track {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 3px;
+  overflow: visible;
+  transition: height var(--rp-transition);
+}
+
+.rp-progress:hover .rp-progress__track { height: 5px; }
+
+.rp-progress__buffered {
+  position: absolute;
+  height: 100%;
+  background: rgba(255,255,255,0.25);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.rp-progress__played {
+  position: absolute;
+  height: 100%;
+  background: var(--rp-accent);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.rp-progress__thumb {
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--rp-transition);
+  pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(230,57,70,0.4);
+}
+
+.rp-progress:hover .rp-progress__thumb { transform: translate(-50%, -50%) scale(1); }
+
+/* ─── Time tooltip on progress ──────────────────────────── */
+.rp-progress__tooltip {
+  position: absolute;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 11px;
+  font-family: var(--rp-font-body);
+  padding: 3px 7px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.1s;
+  border: 1px solid var(--rp-border2);
+}
+
+.rp-progress:hover .rp-progress__tooltip { opacity: 1; }
+
+/* ─── Control buttons row ───────────────────────────────── */
+.rp-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px 6px;
+  height: var(--rp-ctrl-h);
+}
+
+.rp-ctrl-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--rp-radius);
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--rp-transition), background var(--rp-transition);
+  flex-shrink: 0;
+}
+
+.rp-ctrl-btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+
+.rp-ctrl-btn:active { transform: scale(0.92); }
+
+.rp-ctrl-btn.active { color: var(--rp-accent); }
+
+/* ─── Volume cluster ────────────────────────────────────── */
+.rp-vol-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.rp-vol-slider-wrap {
+  width: 0;
+  overflow: hidden;
+  transition: width 0.22s ease;
+}
+
+.rp-vol-cluster:hover .rp-vol-slider-wrap,
+.rp-vol-cluster:focus-within .rp-vol-slider-wrap {
+  width: 76px;
+}
+
+.rp-vol-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 68px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.2);
+  outline: none;
+  cursor: pointer;
+  margin: 0 4px;
+  accent-color: var(--rp-accent);
+}
+
+.rp-vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ─── Time display ──────────────────────────────────────── */
+.rp-time {
+  font-family: var(--rp-font-body);
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+  margin: 0 4px;
+}
+
+.rp-time strong { color: #fff; }
+
+/* ─── Spacer ─────────────────────────────────────────────── */
+.rp-ctrl-spacer { flex: 1; }
+
+/* ─── Quality badge ─────────────────────────────────────── */
+.rp-quality-badge {
+  font-family: var(--rp-font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 3px;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: all var(--rp-transition);
+}
+
+.rp-quality-badge:hover {
+  color: var(--rp-accent2);
+  border-color: var(--rp-accent2);
+}
+
+/* ─── Speed menu ────────────────────────────────────────── */
+.rp-speed-wrap {
+  position: relative;
+}
+
+.rp-speed-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: var(--rp-surface);
+  border: 1px solid var(--rp-border2);
+  border-radius: var(--rp-radius);
+  overflow: hidden;
+  display: none;
+  min-width: 80px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  z-index: 20;
+}
+
+.rp-speed-wrap.open .rp-speed-menu { display: block; }
+
+.rp-speed-opt {
+  font-family: var(--rp-font-body);
+  font-size: 12px;
+  padding: 7px 14px;
+  cursor: pointer;
+  color: var(--rp-text-muted);
+  transition: background var(--rp-transition), color var(--rp-transition);
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.rp-speed-opt:hover { background: var(--rp-surface2); color: var(--rp-text); }
+.rp-speed-opt.active { color: var(--rp-accent); font-weight: 500; }
+
+/* ─── Movie info under player ───────────────────────────── */
+.rp-info {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--rp-border);
+}
+
+.rp-info__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.rp-info__title {
+  font-family: var(--rp-font-display);
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: var(--rp-text);
+  line-height: 1;
+}
+
+.rp-info__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rp-info__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: var(--rp-radius);
+  border: 1px solid var(--rp-border2);
+  background: transparent;
+  color: var(--rp-text-muted);
+  font-family: var(--rp-font-body);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--rp-transition);
+}
+
+.rp-info__btn:hover {
+  border-color: var(--rp-accent);
+  color: var(--rp-accent);
+}
+
+.rp-info__btn--primary {
+  background: var(--rp-accent);
+  border-color: var(--rp-accent);
+  color: #fff;
+}
+
+.rp-info__btn--primary:hover {
+  background: #c1121f;
+  color: #fff;
+}
+
+.rp-info__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.rp-info__chip {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+
+.rp-info__sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--rp-text-dim);
+}
+
+.rp-info__desc {
+  font-size: 13px;
+  color: var(--rp-text-muted);
+  line-height: 1.65;
+  max-width: 680px;
+}
+
+.rp-info__views {
+  font-family: var(--rp-font-body);
+  font-size: 12px;
+  color: var(--rp-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Star rating (under player) ───────────────────────── */
+.rp-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--rp-border);
+}
+
+.rp-rating-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--rp-text-dim);
+}
+
+.rp-stars {
+  display: flex;
+  gap: 3px;
+}
+
+.rp-star {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--rp-text-dim);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: color var(--rp-transition), transform var(--rp-transition);
+}
+
+.rp-star:hover,
+.rp-star.on { color: var(--rp-accent2); }
+
+.rp-star:hover { transform: scale(1.2); }
+.rp-star.locked { cursor: default; }
+.rp-star.locked:hover { transform: none; }
+
+.rp-rating-score {
+  font-family: var(--rp-font-display);
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: var(--rp-accent2);
+  line-height: 1;
+}
+
+.rp-rating-count {
+  font-size: 11px;
+  color: var(--rp-text-muted);
+}
+
+.rp-rating-voted {
+  font-size: 11px;
+  color: var(--rp-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────── */
+.rp-sidebar {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  border-left: 1px solid var(--rp-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .rp-sidebar { grid-column: 1; }
+}
+
+.rp-sidebar__head {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--rp-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.rp-sidebar__title {
+  font-family: var(--rp-font-display);
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--rp-text-muted);
+}
+
+.rp-sidebar__count {
+  font-size: 11px;
+  color: var(--rp-text-dim);
+}
+
+.rp-sidebar__list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.rp-sidebar__list::-webkit-scrollbar { width: 3px; }
+.rp-sidebar__list::-webkit-scrollbar-thumb { background: var(--rp-border2); }
+
+/* ─── Related card en sidebar ── */
+.rp-related-card {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--rp-border);
+  transition: background var(--rp-transition);
+  /* SIN position:relative aquí para que el badge quede dentro del thumb */
+  text-decoration: none;
+}
+
+.rp-related-card:hover { background: var(--rp-surface); }
+
+.rp-related-card.active { background: var(--rp-surface2); }
+
+.rp-related-card__thumb {
+  position: relative;          /* el badge se posiciona relativo al thumb */
+  border-radius: var(--rp-radius);
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  background: var(--rp-surface2);
+  flex-shrink: 0;
+  align-self: start;           /* evita que se estire verticalmente */
+}
+
+.rp-related-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Preview video on hover ── */
+.rp-related-card__preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.rp-related-card:hover .rp-related-card__preview { opacity: 1; }
+.rp-related-card:hover .rp-related-card__img { opacity: 0; }
+
+.rp-related-card__play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  opacity: 0;
+  transition: opacity var(--rp-transition);
+}
+
+.rp-related-card:hover .rp-related-card__play-overlay { opacity: 1; }
+
+.rp-related-card__duration {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--rp-font-body);
+}
+
+/* min-width:0 + overflow:hidden garantizan que el texto nunca
+   desborde la columna. align-self:start evita estiramiento. */
+.rp-related-card__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  align-self: start;
+  padding-top: 1px;
+}
+
+.rp-related-card__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.35;
+  word-break: break-word; /* ← FIX: corta palabras muy largas */
+}
+
+.rp-related-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--rp-text-muted);
+}
+
+.rp-related-card__cat {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.rp-related-card__views {
+  font-size: 10px;
+  color: var(--rp-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+/* Active playing indicator */
+.rp-related-card.active .rp-related-card__title { color: var(--rp-accent); }
+
+/* Badge "REPRODUCIENDO" — vive dentro de __thumb (position:relative),
+   NO dentro del card entero. Así no tapa el body de texto. */
+.rp-now-playing-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: var(--rp-accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+  z-index: 3;
+  white-space: nowrap;
+  max-width: calc(100% - 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Mini-preview tooltip on card hover ───────────────── */
+.rp-mini-preview {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  width: 260px;
+  border-radius: var(--rp-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--rp-border2);
+  background: var(--rp-surface);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.rp-mini-preview.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.rp-mini-preview__video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+.rp-mini-preview__info {
+  padding: 8px 12px 10px;
+}
+
+.rp-mini-preview__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rp-text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rp-mini-preview__meta {
+  font-size: 10px;
+  color: var(--rp-text-muted);
+  display: flex;
+  gap: 6px;
+}
+
+/* ─── Keyboard shortcut hint ────────────────────────────── */
+.rp-kbd-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: var(--rp-radius);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  font-family: var(--rp-font-body);
+  border: 1px solid var(--rp-border2);
+}
+
+.rp-kbd-hint.visible { opacity: 1; }
+
+/* ─── Error state ────────────────────────────────────────── */
+.rp-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0,0,0,0.8);
+  color: var(--rp-accent);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.rp-error__icon { color: var(--rp-accent); }
+
+/* ─── Fullscreen adjustments ─────────────────────────────── */
+.rp-player-wrap:fullscreen { aspect-ratio: unset; height: 100vh; }
+.rp-player-wrap:-webkit-full-screen { aspect-ratio: unset; height: 100vh; }
+
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rp-info { padding: 14px 16px; }
+  .rp-info__title { font-size: 22px; }
+  .rp-ctrl-row { padding: 2px 6px 4px; }
+  .rp-ctrl-btn { width: 30px; height: 30px; }
+  .rp-rating-row { padding: 12px 16px; }
+  .rp-related-card {
+    grid-template-columns: 80px minmax(0, 1fr); /* ← FIX mobile */
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rp-info__actions { flex-wrap: wrap; }
+  .rp-info__meta { gap: 6px; }
+}

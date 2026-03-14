@@ -1,0 +1,571 @@
+/* ═══════════════════════════════════════════════════════════
+   styles/terminos.css — Nakama
+   Página de lectura de T&C. Fondo blanco, texto negro.
+   Misma estructura visual que TermsUpdateModal.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Página contenedora ──────────────────────────────────── */
+.trm-page {
+  min-height:   100vh;
+  background:   #f4f5f7;
+  padding:      2rem 1rem 4rem;
+  font-family:  "Segoe UI", system-ui, sans-serif;
+  box-sizing:   border-box;
+}
+
+/* ── Tarjeta principal ───────────────────────────────────── */
+.trm-card {
+  background:    #ffffff;
+  border-radius: 14px;
+  border:        1px solid #dde0e8;
+  box-shadow:    0 2px 12px rgba(0,0,0,0.07);
+  max-width:     780px;
+  margin:        0 auto;
+  overflow:      hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.trm-header {
+  display:         flex;
+  align-items:     center;
+  gap:             1rem;
+  padding:         1.5rem 1.75rem 1.25rem;
+  border-bottom:   2px solid #e5e7eb;
+  background:      #ffffff;
+}
+
+.trm-header__icon {
+  font-size:  2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.trm-header__text { flex: 1; min-width: 0; }
+
+.trm-header__title {
+  margin:      0 0 0.2rem;
+  font-size:   1.2rem;
+  font-weight: 800;
+  color:       #111827;
+  letter-spacing: -0.02em;
+}
+
+.trm-header__subtitle {
+  margin:    0;
+  font-size: 0.82rem;
+  color:     #6b7280;
+}
+
+.trm-header__subtitle strong { color: #374151; }
+.trm-header__subtitle em    { font-style: italic; color: #b45309; }
+
+/* ── Botón editar (superadmin) ───────────────────────────── */
+.trm-btn-edit {
+  flex-shrink:   0;
+  display:       inline-flex;
+  align-items:   center;
+  gap:           0.35rem;
+  padding:       0.45rem 0.9rem;
+  border-radius: 7px;
+  border:        1.5px solid #3b4cca;
+  background:    #eef0fc;
+  color:         #3b4cca;
+  font-size:     0.8rem;
+  font-weight:   700;
+  cursor:        pointer;
+  font-family:   inherit;
+  transition:    background 0.14s, color 0.14s;
+  white-space:   nowrap;
+}
+.trm-btn-edit:hover { background: #3b4cca; color: #fff; }
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.trm-tabs {
+  display:       flex;
+  gap:           0;
+  border-bottom: 2px solid #e5e7eb;
+  background:    #f9fafb;
+  overflow-x:    auto;
+  scrollbar-width: none;
+  flex-shrink:   0;
+}
+.trm-tabs::-webkit-scrollbar { display: none; }
+
+.trm-tab {
+  padding:       0.85rem 1.4rem;
+  border:        none;
+  background:    transparent;
+  color:         #6b7280;
+  font-size:     0.88rem;
+  font-weight:   600;
+  cursor:        pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition:    color 0.14s, border-color 0.14s;
+  font-family:   inherit;
+  white-space:   nowrap;
+}
+.trm-tab:hover      { color: #111827; }
+.trm-tab--active    { color: #3b4cca; border-color: #3b4cca; background: #fff; }
+
+/* ── Body ────────────────────────────────────────────────── */
+.trm-body { background: #fff; }
+
+.trm-tab-content {
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.trm-tab-content--changes { gap: 1.1rem; }
+
+/* ── Banner de cambios ───────────────────────────────────── */
+.trm-changes-banner {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           0.75rem;
+  background:    #fffbeb;
+  border:        1px solid #fde68a;
+  border-radius: 10px;
+  padding:       1rem 1.25rem;
+  font-size:     0.9rem;
+  color:         #374151;
+  line-height:   1.6;
+}
+
+.trm-changes-banner__icon { font-size: 1.25rem; flex-shrink: 0; line-height: 1.4; }
+.trm-changes-banner p     { margin: 0; }
+.trm-changes-banner strong { color: #111827; }
+
+/* ── Resumen de cambios ──────────────────────────────────── */
+.trm-changes-summary {
+  background:    #f9fafb;
+  border:        1px solid #e5e7eb;
+  border-radius: 10px;
+  padding:       1rem 1.25rem;
+}
+
+.trm-changes-summary h3 {
+  margin:      0 0 0.65rem;
+  font-size:   0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:       #6b7280;
+}
+
+.trm-changes-summary--empty p {
+  color:     #9ca3af;
+  font-size: 0.88rem;
+  margin:    0;
+  font-style: italic;
+}
+
+.trm-changes-pre {
+  margin:      0;
+  font-family: "Courier New", monospace;
+  font-size:   0.84rem;
+  color:       #374151;
+  white-space: pre-wrap;
+  word-break:  break-word;
+  line-height: 1.65;
+}
+
+/* ── Pasos ───────────────────────────────────────────────── */
+.trm-steps {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.6rem;
+}
+
+.trm-step {
+  display:       flex;
+  align-items:   center;
+  gap:           0.85rem;
+  padding:       0.75rem 1rem;
+  background:    #f9fafb;
+  border:        1px solid #e5e7eb;
+  border-radius: 9px;
+  font-size:     0.88rem;
+  color:         #374151;
+  line-height:   1.5;
+}
+
+.trm-step strong { color: #111827; }
+
+.trm-step__num {
+  width:           28px;
+  height:          28px;
+  border-radius:   50%;
+  background:      #3b4cca;
+  color:           #fff;
+  font-size:       0.78rem;
+  font-weight:     800;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+}
+
+/* ── Botón siguiente ─────────────────────────────────────── */
+.trm-next-btn {
+  align-self:    flex-start;
+  display:       inline-flex;
+  align-items:   center;
+  padding:       0.6rem 1.25rem;
+  border-radius: 8px;
+  border:        none;
+  background:    #3b4cca;
+  color:         #fff;
+  font-size:     0.88rem;
+  font-weight:   700;
+  cursor:        pointer;
+  font-family:   inherit;
+  transition:    background 0.14s;
+}
+.trm-next-btn:hover { background: #2d3aad; }
+
+/* ── Área de scroll del texto legal ──────────────────────── */
+.trm-scroll-area {
+  background:    #f9fafb;
+  border:        1px solid #e5e7eb;
+  border-radius: 10px;
+  padding:       1.5rem 1.75rem;
+  max-height:    520px;
+  overflow-y:    auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.trm-scroll-area::-webkit-scrollbar       { width: 6px; }
+.trm-scroll-area::-webkit-scrollbar-track { background: transparent; }
+.trm-scroll-area::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+/* ── Texto legal ─────────────────────────────────────────── */
+.trm-legal-text {
+  margin:      0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size:   0.92rem;
+  line-height: 1.85;
+  color:       #111827;
+  white-space: pre-wrap;
+  word-break:  break-word;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.trm-footer {
+  display:      flex;
+  align-items:  center;
+  gap:          0.5rem;
+  padding:      0.8rem 1.75rem;
+  background:   #f9fafb;
+  border-top:   1px solid #e5e7eb;
+  font-size:    0.75rem;
+  color:        #9ca3af;
+  font-family:  inherit;
+}
+.trm-sep { color: #d1d5db; }
+
+/* ══════════════════════════════════════════════════════════
+   EDITOR SUPERADMIN
+══════════════════════════════════════════════════════════ */
+.trm-editor-card {
+  background:    #ffffff;
+  border-radius: 14px;
+  border:        1px solid #dde0e8;
+  box-shadow:    0 2px 12px rgba(0,0,0,0.07);
+  max-width:     780px;
+  margin:        0 auto;
+  overflow:      hidden;
+  padding:       1.75rem;
+  display:       flex;
+  flex-direction: column;
+  gap:           1.5rem;
+}
+
+.trm-editor-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding-bottom:  1.25rem;
+  border-bottom:   2px solid #e5e7eb;
+  gap:             1rem;
+}
+
+.trm-editor-title {
+  margin:      0;
+  font-size:   1.1rem;
+  font-weight: 800;
+  color:       #111827;
+  letter-spacing: -0.01em;
+}
+
+.trm-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   1rem;
+}
+
+.trm-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.trm-field--full { grid-column: 1 / -1; }
+
+.trm-label {
+  font-size:      0.72rem;
+  font-weight:    800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          #6b7280;
+}
+
+.trm-req { color: #dc2626; }
+
+.trm-input,
+.trm-textarea {
+  background:    #ffffff;
+  border:        1.5px solid #d1d5db;
+  border-radius: 8px;
+  color:         #111827;
+  font-family:   inherit;
+  font-size:     0.88rem;
+  padding:       0.6rem 0.85rem;
+  transition:    border-color 0.14s, box-shadow 0.14s;
+  width:         100%;
+  box-sizing:    border-box;
+  resize:        vertical;
+}
+
+.trm-input:focus,
+.trm-textarea:focus {
+  outline:      none;
+  border-color: #3b4cca;
+  box-shadow:   0 0 0 3px rgba(59,76,202,0.1);
+}
+
+.trm-textarea {
+  font-family: "Courier New", monospace;
+  font-size:   0.8rem;
+  line-height: 1.65;
+  min-height:  220px;
+}
+
+.trm-textarea--sm {
+  font-family: inherit;
+  font-size:   0.86rem;
+  min-height:  80px;
+}
+
+/* ── Mensajes ────────────────────────────────────────────── */
+.trm-msg {
+  padding:       0.7rem 1rem;
+  border-radius: 8px;
+  font-size:     0.85rem;
+  font-weight:   600;
+}
+.trm-msg--ok  { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.trm-msg--err { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+
+/* ── Acciones editor ─────────────────────────────────────── */
+.trm-editor-actions {
+  display:     flex;
+  align-items: center;
+  gap:         0.65rem;
+  flex-wrap:   wrap;
+  padding-top: 0.5rem;
+  border-top:  1.5px solid #e5e7eb;
+}
+
+.trm-btn-ghost,
+.trm-btn-save,
+.trm-btn-pub {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           0.35rem;
+  padding:       0.55rem 1.15rem;
+  border-radius: 8px;
+  font-size:     0.86rem;
+  font-weight:   700;
+  cursor:        pointer;
+  border:        1.5px solid transparent;
+  font-family:   inherit;
+  transition:    background 0.14s, border-color 0.14s, color 0.14s;
+  white-space:   nowrap;
+}
+
+.trm-btn-ghost:disabled,
+.trm-btn-save:disabled,
+.trm-btn-pub:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.trm-btn-ghost { background: transparent; border-color: #d1d5db; color: #6b7280; }
+.trm-btn-ghost:hover:not(:disabled) { background: #f3f4f6; border-color: #9ca3af; color: #374151; }
+
+.trm-btn-save { background: #3b4cca; border-color: #3b4cca; color: #fff; }
+.trm-btn-save:hover:not(:disabled) { background: #2d3aad; border-color: #2d3aad; }
+
+.trm-btn-pub { background: #059669; border-color: #059669; color: #fff; }
+.trm-btn-pub:hover:not(:disabled) { background: #047857; border-color: #047857; }
+
+/* ── Spinner ─────────────────────────────────────────────── */
+.trm-spin {
+  display:        inline-block;
+  width:          13px;
+  height:         13px;
+  border:         2px solid rgba(255,255,255,0.3);
+  border-top-color: currentColor;
+  border-radius:  50%;
+  animation:      trm-rotate 0.65s linear infinite;
+  vertical-align: middle;
+  margin-right:   4px;
+}
+@keyframes trm-rotate { to { transform: rotate(360deg); } }
+
+/* ── Lista versiones ─────────────────────────────────────── */
+.trm-ver-list {
+  background:    #fff;
+  border:        1.5px solid #e5e7eb;
+  border-radius: 10px;
+  overflow:      hidden;
+}
+
+.trm-ver-list__head {
+  padding:     0.65rem 1rem;
+  font-size:   0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color:       #6b7280;
+  background:  #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.trm-ver-row {
+  display:       flex;
+  align-items:   center;
+  gap:           0.75rem;
+  padding:       0.65rem 1rem;
+  font-size:     0.83rem;
+  border-bottom: 1px solid #f3f4f6;
+  color:         #374151;
+  flex-wrap:     wrap;
+}
+.trm-ver-row:last-child  { border-bottom: none; }
+.trm-ver-row--active     { background: #ecfdf5; }
+.trm-ver-row strong      { color: #111827; }
+
+.trm-badge {
+  font-size:     0.68rem;
+  font-weight:   700;
+  padding:       0.15rem 0.55rem;
+  border-radius: 999px;
+  white-space:   nowrap;
+}
+.trm-badge--green  { background: #ecfdf5; color: #059669; }
+.trm-badge--yellow { background: #fffbeb; color: #b45309; }
+.trm-badge--gray   { background: #f3f4f6; color: #6b7280; }
+
+.trm-ver-date,
+.trm-ver-count { color: #9ca3af; font-size: 0.76rem; }
+
+.trm-ver-actions { display: flex; gap: 0.4rem; margin-left: auto; }
+
+.trm-btn-xs {
+  display:       inline-flex;
+  align-items:   center;
+  padding:       0.28rem 0.65rem;
+  border-radius: 6px;
+  font-size:     0.74rem;
+  font-weight:   700;
+  cursor:        pointer;
+  border:        1.5px solid #d1d5db;
+  background:    #fff;
+  color:         #374151;
+  font-family:   inherit;
+  transition:    background 0.12s;
+}
+.trm-btn-xs:hover:not(:disabled)        { background: #f3f4f6; }
+.trm-btn-xs:disabled                    { opacity: 0.4; cursor: not-allowed; }
+.trm-btn-xs--green                      { border-color: #059669; color: #059669; }
+.trm-btn-xs--green:hover:not(:disabled) { background: #ecfdf5; }
+
+/* ── Panel historial SA en tab changes ───────────────────── */
+.trm-sa-panel {
+  background:    #f0f4ff;
+  border:        1.5px solid #c7d2fe;
+  border-radius: 10px;
+  overflow:      hidden;
+  margin-top:    0.5rem;
+}
+
+.trm-sa-panel__head {
+  padding:     0.65rem 1rem;
+  font-size:   0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color:       #3b4cca;
+  background:  #e8edfb;
+  border-bottom: 1px solid #c7d2fe;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 580px) {
+  .trm-page { padding: 0.75rem 0.5rem 3rem; }
+
+  .trm-card,
+  .trm-editor-card { border-radius: 10px; }
+
+  .trm-header { padding: 1.1rem 1.25rem 1rem; gap: 0.75rem; }
+  .trm-header__title { font-size: 1rem; }
+
+  .trm-tab { padding: 0.7rem 1rem; font-size: 0.82rem; }
+
+  .trm-tab-content { padding: 1.25rem; }
+
+  .trm-scroll-area {
+    padding:    1rem 1.1rem;
+    max-height: 400px;
+  }
+
+  .trm-legal-text { font-size: 0.87rem; }
+
+  .trm-grid { grid-template-columns: 1fr; }
+  .trm-field--full { grid-column: 1; }
+
+  .trm-editor-card   { padding: 1.25rem; }
+  .trm-editor-actions { flex-direction: column; align-items: stretch; }
+
+  .trm-btn-ghost,
+  .trm-btn-save,
+  .trm-btn-pub { justify-content: center; }
+
+  .trm-ver-row { gap: 0.5rem; }
+  .trm-ver-date,
+  .trm-ver-count { display: none; }
+}
+
+/* ── Banner anti-grooming (tab Privacidad) ───────────────── */
+.trm-antigrooming-box {
+  background:    #1a0a0a;
+  border:        2px solid #dc2626;
+  border-radius: 10px;
+  padding:       1rem 1.25rem;
+}
+
+.trm-antigrooming-box__title {
+  margin:      0 0 0.5rem;
+  font-size:   0.88rem;
+  font-weight: 800;
+  color:       #dc2626;
+  letter-spacing: 0.02em;
+}
+
+.trm-antigrooming-box__text {
+  margin:      0;
+  font-size:   0.87rem;
+  color:       #f3f4f6;
+  line-height: 1.6;
+}
+
+.trm-antigrooming-box__text strong {
+  color: #fca5a5;
+}

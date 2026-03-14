@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════════════════════════
+   SuperadminTermsEditor.css — Nakama
+   ═══════════════════════════════════════════════════════════ */
+
+.ste-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  color: #e8e8f0;
+  font-family: "Rajdhani", sans-serif;
+}
+
+.ste-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ste-title {
+  font-family: "Orbitron", monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #e8e8f0;
+  margin: 0 0 4px;
+}
+
+.ste-subtitle {
+  font-size: 0.83rem;
+  color: #7a7a9a;
+  margin: 0;
+}
+
+/* ── Botones ── */
+.ste-btn {
+  padding: 0.55rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: "Rajdhani", sans-serif;
+  white-space: nowrap;
+}
+
+.ste-btn--primary {
+  background: linear-gradient(135deg, #e63946, #f72585);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(230,57,70,0.3);
+}
+.ste-btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(230,57,70,0.45);
+}
+
+.ste-btn--ghost {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8;
+}
+.ste-btn--ghost:hover { background: rgba(255,255,255,0.09); color: #e8e8f0; }
+
+.ste-btn--publish {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(34,197,94,0.25);
+}
+.ste-btn--publish:hover:not(:disabled) { transform: translateY(-1px); }
+.ste-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Alertas ── */
+.ste-alert {
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.83rem;
+  margin-bottom: 1rem;
+}
+.ste-alert--error  { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
+.ste-alert--success{ background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
+
+/* ── Resultado de publicación ── */
+.ste-publish-result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(34,197,94,0.07);
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+.ste-publish-result__icon { font-size: 1.8rem; }
+.ste-publish-result strong { font-size: 0.95rem; color: #86efac; display: block; }
+.ste-publish-result p { font-size: 0.8rem; color: #7a7a9a; margin: 0; }
+
+/* ── Listado de versiones ── */
+.ste-loading { color: #7a7a9a; font-size: 0.85rem; text-align: center; padding: 2rem; }
+.ste-empty   { color: #7a7a9a; font-size: 0.85rem; text-align: center; padding: 2rem; }
+
+.ste-versions { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.ste-version-card {
+  background: #0e0e1a;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  transition: border-color 0.2s;
+}
+.ste-version-card--active { border-color: rgba(34,197,94,0.3); }
+.ste-version-card--draft  { border-color: rgba(251,191,36,0.25); }
+
+.ste-version-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.ste-version-card__ver {
+  font-family: "Orbitron", monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4cc9f0;
+  margin-right: 0.5rem;
+}
+.ste-version-card__date { font-size: 0.75rem; color: #4a4a6a; }
+.ste-version-card__summary { font-size: 0.8rem; color: #7a7a9a; margin: 0.3rem 0 0.6rem; line-height: 1.5; }
+.ste-version-card__meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.72rem;
+  color: #4a4a6a;
+  margin-bottom: 0.75rem;
+}
+.ste-version-card__actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.ste-version-card__published-note { font-size: 0.78rem; color: #22c55e; }
+
+/* ── Badges ── */
+.ste-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.ste-badge--active { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+.ste-badge--draft  { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.25); color: #fbbf24; }
+
+/* ── Editor form ── */
+.ste-form { display: flex; flex-direction: column; gap: 1rem; }
+.ste-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.ste-field { display: flex; flex-direction: column; gap: 4px; }
+.ste-label { font-size: 0.8rem; font-weight: 600; color: #94a3b8; }
+
+.ste-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  color: #e8e8f0;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.ste-input:focus { outline: none; border-color: rgba(76,201,240,0.5); }
+
+.ste-textarea {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  color: #e8e8f0;
+  font-size: 0.82rem;
+  font-family: "Courier New", monospace;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+.ste-textarea:focus { outline: none; border-color: rgba(76,201,240,0.5); }
+.ste-textarea--sm { min-height: 90px; }
+.ste-textarea--lg { min-height: 280px; }
+
+.ste-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .ste-form-row { grid-template-columns: 1fr; }
+  .ste-header   { flex-direction: column; }
+  .ste-version-card__header { flex-direction: column; align-items: flex-start; }
+}
