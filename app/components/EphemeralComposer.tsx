@@ -10,7 +10,7 @@ import { useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Timer, X, Image, Type, Upload, Flame, Eye, EyeOff, Clock, Check, Loader2, AlertCircle } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API ="https://nakama-vercel-backend.vercel.app";
 
 // ── Paleta fija: zona oscura profunda (independiente del tema) ──
 const E = {
