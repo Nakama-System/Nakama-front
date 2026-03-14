@@ -15,7 +15,7 @@ import {
   ImageIcon, FileVideo, AlertTriangle,
 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 export type UploadedFile = {
   url: string;
