@@ -3,10 +3,6 @@
 /**
  * app/reproductor/[id]/page.tsx — Nakama · Video Player
  * Reproductor universal: YouTube embed / Vimeo embed / video directo
- * - Controles nativos para video directo
- * - Embed iframe para YouTube y Vimeo
- * - Preview en miniatura al hover sobre related cards
- * - Keyboard shortcuts (solo en modo video directo)
  */
 
 import {
@@ -28,9 +24,19 @@ import type { MovieItem } from "../../types/movie";
 import "../../styles/reproductor.css";
 
 /* ── Config ───────────────────────────────────────────── */
-const API_BASE ="https://nakama-vercel-backend.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://nakama-vercel-backend.vercel.app";
 const SPEEDS   = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 type Speed     = typeof SPEEDS[number];
+
+/* ── Share base URL ───────────────────────────────────── */
+function getSiteBase(): string {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (typeof window !== "undefined" && window.location.origin !== "http://localhost:3000"
+      ? window.location.origin
+      : "http://localhost:3000")
+  );
+}
 
 /* ── Video source detection ───────────────────────────── */
 type VideoSourceType = "youtube" | "vimeo" | "direct";
@@ -69,17 +75,19 @@ function bearerHeader(token: string | null): HeadersInit {
 }
 
 const CAT_PALETTE: Record<string, { accent: string; bg: string }> = {
-  accion:    { accent: "#e63946", bg: "rgba(230,57,70,.12)"   },
-  aventura:  { accent: "#ff9f43", bg: "rgba(255,159,67,.12)"  },
-  diversion: { accent: "#26de81", bg: "rgba(38,222,129,.12)"  },
-  amor:      { accent: "#fd79a8", bg: "rgba(253,121,168,.12)" },
-  familia:   { accent: "#74b9ff", bg: "rgba(116,185,255,.12)" },
-  comedia:   { accent: "#26de81", bg: "rgba(38,222,129,.12)"  },
-  drama:     { accent: "#a29bfe", bg: "rgba(162,155,254,.12)" },
-  terror:    { accent: "#e63946", bg: "rgba(230,57,70,.12)"   },
-  "sci-fi":  { accent: "#74b9ff", bg: "rgba(116,185,255,.12)" },
-  animacion: { accent: "#ff9f43", bg: "rgba(255,159,67,.12)"  },
-  romance:   { accent: "#fd79a8", bg: "rgba(253,121,168,.12)" },
+  accion:     { accent: "#e63946", bg: "rgba(230,57,70,.12)"   },
+  aventura:   { accent: "#ff9f43", bg: "rgba(255,159,67,.12)"  },
+  diversion:  { accent: "#26de81", bg: "rgba(38,222,129,.12)"  },
+  amor:       { accent: "#fd79a8", bg: "rgba(253,121,168,.12)" },
+  familia:    { accent: "#74b9ff", bg: "rgba(116,185,255,.12)" },
+  comedia:    { accent: "#26de81", bg: "rgba(38,222,129,.12)"  },
+  drama:      { accent: "#a29bfe", bg: "rgba(162,155,254,.12)" },
+  terror:     { accent: "#636e72", bg: "rgba(99,110,114,.12)"  },
+  "sci-fi":   { accent: "#00cec9", bg: "rgba(0,206,201,.12)"   },
+  animacion:  { accent: "#fdcb6e", bg: "rgba(253,203,110,.12)" },
+  romance:    { accent: "#fd79a8", bg: "rgba(253,121,168,.12)" },
+  documental: { accent: "#b2bec3", bg: "rgba(178,190,195,.12)" },
+  otro:       { accent: "#dfe6e9", bg: "rgba(223,230,233,.12)" },
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -149,39 +157,37 @@ function EmbedPlayer({ url, type, thumbnail, title }: EmbedPlayerProps) {
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
           />
         )}
-        <div className="rp-idle-play" style={{
-          position:        "absolute",
-          inset:           0,
-          display:         "flex",
-          alignItems:      "center",
-          justifyContent:  "center",
-          background:      "rgba(0,0,0,.35)",
+        <div style={{
+          position:       "absolute",
+          inset:          0,
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "center",
+          background:     "rgba(0,0,0,.35)",
         }}>
           <div style={{
-            width:           64,
-            height:          64,
-            borderRadius:    "50%",
-            background:      "rgba(0,0,0,.7)",
-            display:         "flex",
-            alignItems:      "center",
-            justifyContent:  "center",
-            backdropFilter:  "blur(4px)",
+            width:          64,
+            height:         64,
+            borderRadius:   "50%",
+            background:     "rgba(0,0,0,.7)",
+            display:        "flex",
+            alignItems:     "center",
+            justifyContent: "center",
+            backdropFilter: "blur(4px)",
           }}>
             <Play size={28} fill="#fff" color="#fff" />
           </div>
         </div>
-
-        {/* Badge fuente */}
         <div style={{
-          position:     "absolute",
-          top:          12,
-          right:        12,
-          background:   type === "youtube" ? "#ff0000cc" : "#1ab7eacc",
-          color:        "#fff",
-          fontSize:     11,
-          fontWeight:   700,
-          padding:      "3px 8px",
-          borderRadius: 4,
+          position:       "absolute",
+          top:            12,
+          right:          12,
+          background:     type === "youtube" ? "#ff0000cc" : "#1ab7eacc",
+          color:          "#fff",
+          fontSize:       11,
+          fontWeight:     700,
+          padding:        "3px 8px",
+          borderRadius:   4,
           backdropFilter: "blur(4px)",
         }}>
           {type === "youtube" ? "▶ YouTube" : "🎬 Vimeo"}
@@ -249,7 +255,6 @@ function MiniPreview({ movie, visible, x, y }: MiniPreviewProps) {
 
   return (
     <div className={`rp-mini-preview${visible ? " visible" : ""}`} style={{ left, top }}>
-      {/* Para YouTube/Vimeo mostramos solo el thumbnail en el mini-preview */}
       {type === "direct" ? (
         <video
           ref={vidRef}
@@ -294,7 +299,6 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
   const vtype      = detectVideoType(movie.videoUrl);
 
   const handleMouseEnter = (e: ReactMouseEvent) => {
-    // Solo intentar preview de video nativo — YouTube/Vimeo solo muestran thumbnail
     if (vtype === "direct") {
       const v = previewRef.current;
       if (v && movie.videoUrl) {
@@ -341,7 +345,6 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
             e.currentTarget.style.display = "none";
           }}
         />
-        {/* Solo preview de video nativo */}
         {vtype === "direct" && (
           <video
             ref={previewRef}
@@ -353,17 +356,16 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
         <div className="rp-related-card__play-overlay">
           <Play size={18} color="#fff" fill="#fff" />
         </div>
-        {/* Badge tipo de fuente */}
         <span style={{
-          position:     "absolute",
-          bottom:       4,
-          left:         4,
-          fontSize:     9,
-          fontWeight:   700,
-          padding:      "2px 5px",
-          borderRadius: 3,
-          background:   vtype === "youtube" ? "#ff0000cc" : vtype === "vimeo" ? "#1ab7eacc" : "rgba(0,0,0,.6)",
-          color:        "#fff",
+          position:       "absolute",
+          bottom:         4,
+          left:           4,
+          fontSize:       9,
+          fontWeight:     700,
+          padding:        "2px 5px",
+          borderRadius:   3,
+          background:     vtype === "youtube" ? "#ff0000cc" : vtype === "vimeo" ? "#1ab7eacc" : "rgba(0,0,0,.6)",
+          color:          "#fff",
           backdropFilter: "blur(4px)",
         }}>
           {vtype === "youtube" ? "YT" : vtype === "vimeo" ? "Vimeo" : "MP4"}
@@ -390,12 +392,12 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
 }
 
 /* ═══════════════════════════════════════════════════════
-   DirectVideoPlayer — controles completos para video nativo
+   DirectVideoPlayer
    ═══════════════════════════════════════════════════════ */
 interface DirectVideoPlayerProps {
-  movie:      MovieItem;
-  onEnded:    () => void;
-  onError:    () => void;
+  movie:   MovieItem;
+  onEnded: () => void;
+  onError: () => void;
 }
 
 function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) {
@@ -506,16 +508,16 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
   };
 
   useEffect(() => {
-    const onFsChange  = () => setFullscreen(Boolean(document.fullscreenElement));
-    const onPipEnter  = () => setPip(true);
-    const onPipLeave  = () => setPip(false);
-    document.addEventListener("fullscreenchange",       onFsChange);
-    document.addEventListener("enterpictureinpicture",  onPipEnter);
-    document.addEventListener("leavepictureinpicture",  onPipLeave);
+    const onFsChange = () => setFullscreen(Boolean(document.fullscreenElement));
+    const onPipEnter = () => setPip(true);
+    const onPipLeave = () => setPip(false);
+    document.addEventListener("fullscreenchange",      onFsChange);
+    document.addEventListener("enterpictureinpicture", onPipEnter);
+    document.addEventListener("leavepictureinpicture", onPipLeave);
     return () => {
-      document.removeEventListener("fullscreenchange",       onFsChange);
-      document.removeEventListener("enterpictureinpicture",  onPipEnter);
-      document.removeEventListener("leavepictureinpicture",  onPipLeave);
+      document.removeEventListener("fullscreenchange",      onFsChange);
+      document.removeEventListener("enterpictureinpicture", onPipEnter);
+      document.removeEventListener("leavepictureinpicture", onPipLeave);
     };
   }, []);
 
@@ -542,7 +544,7 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
     }
   }, [togglePlay, seek, volume, muted, toggleLoop]);
 
-  const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const VolumeIcon  = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const playedPct   = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferedPct = duration > 0 ? (buffered    / duration) * 100 : 0;
 
@@ -737,10 +739,10 @@ export default function ReproductorPage() {
   const { token, isAuthenticated } = useAuth();
   const movieId = params?.id as string | undefined;
 
-  const [movie,    setMovie]    = useState<MovieItem | null>(null);
-  const [related,  setRelated]  = useState<MovieItem[]>([]);
-  const [loadingM, setLoadingM] = useState(true);
-  const [errorM,   setErrorM]   = useState<string | null>(null);
+  const [movie,      setMovie]      = useState<MovieItem | null>(null);
+  const [related,    setRelated]    = useState<MovieItem[]>([]);
+  const [loadingM,   setLoadingM]   = useState(true);
+  const [errorM,     setErrorM]     = useState<string | null>(null);
   const [videoError, setVideoError] = useState(false);
 
   const [rating, setRating] = useState(0);
@@ -782,7 +784,7 @@ export default function ReproductorPage() {
   }, [token]);
 
   useEffect(() => { if (movieId) void loadMovie(movieId); }, [movieId, loadMovie]);
-  useEffect(() => { if (movie) void loadRelated(movie.category, movie.id); }, [movie, loadRelated]);
+  useEffect(() => { if (movie)   void loadRelated(movie.category, movie.id); }, [movie, loadRelated]);
 
   /* ── vote ───────────────────────────────────────────── */
   const handleVote = async (n: number) => {
@@ -814,11 +816,20 @@ export default function ReproductorPage() {
     });
     const data = await res.json() as { ok: boolean; downloadUrl: string; filename?: string };
     if (data.ok) {
-      const a      = document.createElement("a");
-      a.href       = data.downloadUrl;
-      a.download   = data.filename ?? movie.title;
+      const a    = document.createElement("a");
+      a.href     = data.downloadUrl;
+      a.download = data.filename ?? movie.title;
       a.click();
     }
+  };
+
+  /* ── share → WhatsApp ───────────────────────────────── */
+  const handleShare = () => {
+    if (!movie) return;
+    const movieUrl = `${getSiteBase()}/reproductor/${movie.id}`;
+    const text     = `🎬 *${movie.title}*\n${movie.description?.slice(0, 100)}…\n\n▶️ Ver en Nakama: ${movieUrl}`;
+    const waUrl    = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleEnded = () => {
@@ -854,8 +865,8 @@ export default function ReproductorPage() {
     </div>
   );
 
-  const pal    = CAT_PALETTE[movie.category] ?? { accent: "#e63946", bg: "rgba(230,57,70,.12)" };
-  const vtype  = detectVideoType(movie.videoUrl);
+  const pal   = CAT_PALETTE[movie.category] ?? { accent: "#e63946", bg: "rgba(230,57,70,.12)" };
+  const vtype = detectVideoType(movie.videoUrl);
 
   return (
     <div className="rp-page" tabIndex={0} style={{ outline: "none" }}>
@@ -900,7 +911,6 @@ export default function ReproductorPage() {
             />
           )}
 
-          {/* Error de video nativo */}
           {videoError && vtype === "direct" && (
             <div className="rp-error" style={{ marginTop: 8 }}>
               <AlertCircle size={20} />
@@ -914,11 +924,20 @@ export default function ReproductorPage() {
               <h1 className="rp-info__title">{movie.title}</h1>
               <div className="rp-info__actions">
                 {movie.canDownload && (
-                  <button type="button" className="rp-info__btn rp-info__btn--primary" onClick={() => { void handleDownload(); }}>
+                  <button
+                    type="button"
+                    className="rp-info__btn rp-info__btn--primary"
+                    onClick={() => { void handleDownload(); }}
+                  >
                     <Download size={13} /> Descargar
                   </button>
                 )}
-                <button type="button" className="rp-info__btn" title="Compartir">
+                <button
+                  type="button"
+                  className="rp-info__btn"
+                  title="Compartir en WhatsApp"
+                  onClick={handleShare}
+                >
                   <Share2 size={13} /> Compartir
                 </button>
               </div>
@@ -936,9 +955,11 @@ export default function ReproductorPage() {
               <span className="rp-info__sep" />
               <span style={{ fontSize: 12, color: "var(--rp-text-muted)" }}>{movie.duration}</span>
               <span className="rp-info__sep" />
-              {/* Badge de fuente */}
               <span style={{
-                fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                fontSize:   11,
+                fontWeight: 700,
+                padding:    "2px 7px",
+                borderRadius: 4,
                 background: vtype === "youtube" ? "#ff000022" : vtype === "vimeo" ? "#1ab7ea22" : "rgba(255,255,255,.08)",
                 color:      vtype === "youtube" ? "#ff4444"   : vtype === "vimeo" ? "#1ab7ea"   : "var(--rp-text-muted)",
                 border:     `1px solid ${vtype === "youtube" ? "#ff444444" : vtype === "vimeo" ? "#1ab7ea44" : "rgba(255,255,255,.1)"}`,
