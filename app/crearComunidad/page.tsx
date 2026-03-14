@@ -34,7 +34,7 @@ import {
 import { useAuth } from "../context/authContext";
 import "../styles/crearComunidad.css";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 // ── Tipos ──────────────────────────────────────────────────
 interface UserSuggestion {
