@@ -682,7 +682,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     width: 100%;
     right: 0;
     left: 0;
-    opacity: 0.85;   /* ← subido bastante */
+    opacity: 0.88;
   }
 
   .hero__samurai-img {
@@ -759,7 +759,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   }
 
   .hero__samurai-wrapper {
-   opacity: 0.80;
+   opacity: 0.88;
   }
 
   .navbar { padding: 0 var(--spacing-sm); }
