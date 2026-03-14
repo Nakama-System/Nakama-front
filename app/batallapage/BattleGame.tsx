@@ -49,7 +49,7 @@ type GamePhase =
 // ═══════════════════════════════════════════════════════════
 // CONSTANTES
 // ═══════════════════════════════════════════════════════════
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 const CATEGORIAS_MAP: Record<string, string> = {
   shonen:"⚔️ Shonen", seinen:"🎭 Seinen", isekai:"🌀 Isekai",
