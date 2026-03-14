@@ -20,7 +20,6 @@ interface RegisterForm {
   password: string;
   confirmPassword: string;
 }
-
 // ─── Google OAuth ────────────────────────────────────────
 function handleGoogleAuth() {
   // Redirige al backend Google OAuth
