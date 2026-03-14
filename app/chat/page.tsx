@@ -89,8 +89,8 @@ interface AckOk<T = undefined> { ok: true; data?: T; }
 interface AckErr { ok: false; error: string; }
 type Ack<T = undefined> = AckOk<T> | AckErr;
 
-const API = "https://nakama-vercel-backend.vercel.app";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5000";
+const API = process.env.NEXT_PUBLIC_API_URL || "https://nakama-vercel-backend.vercel.app";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "https://nakama-backend-render.onrender.com";
 
 // ══════════════════════════════════════════════════════════
 // useScrollBlur hook
