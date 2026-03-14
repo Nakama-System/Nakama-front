@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { Swords, X, Check, Clock } from "lucide-react";
 import { io } from "socket.io-client";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 interface BattleInvitation {
   roomId:        string;
