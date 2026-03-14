@@ -21,7 +21,7 @@ import {
 /* ══════════════════════════════════════════════════
    CONFIG
    ══════════════════════════════════════════════════ */
-const API_BASE  = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE  = "https://nakama-vercel-backend.vercel.app";
 const PAGE_SIZE = 9;
 
 const CATEGORIES = [
