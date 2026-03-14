@@ -678,29 +678,43 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 /* ── Tablet (≤ 768px) ── */
 @media (max-width: 768px) {
-  :root {
-    --spacing-xl: 5rem;
-    --spacing-lg: 3rem;
-  }
 
-  /* Navbar */
-  .navbar__links    { display: none; }
-  .navbar__hamburger { display: flex; }
-  .navbar__mobile-menu { display: flex; }
-
-  /* Hero: samurai de fondo semitransparente */
+  /* Hero: samurai visible con fade lateral */
   .hero__samurai-wrapper {
     width: 100%;
     right: 0;
     left: 0;
-    opacity: 0.28;   /* suficientemente tenue para no competir con el texto */
+    opacity: 0.55;   /* ← antes 0.28, ahora más visible */
   }
+
+  .hero__samurai-img {
+    /* Fade más suave: de sólido en el centro a transparente en los bordes */
+    mask-image: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0.6) 15%,
+      rgba(0,0,0,0.9) 35%,
+      rgba(0,0,0,0.9) 75%,
+      rgba(0,0,0,0) 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0.6) 15%,
+      rgba(0,0,0,0.9) 35%,
+      rgba(0,0,0,0.9) 75%,
+      rgba(0,0,0,0) 100%
+    );
+  }
+
   .hero__overlay {
+    /* Overlay menos agresivo para que la imagen respire */
     background: linear-gradient(
-      105deg,
-      rgba(5,5,8,.98) 0%,
-      rgba(5,5,8,.92) 50%,
-      rgba(5,5,8,.75) 100%
+      180deg,
+      rgba(5,5,8,.85) 0%,
+      rgba(5,5,8,.65) 40%,
+      rgba(5,5,8,.80) 80%,
+      rgba(5,5,8,.95) 100%
     );
   }
   .hero__content {
@@ -745,6 +759,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     --spacing-xl: 4rem;
     --spacing-lg: 2.5rem;
     --spacing-md: 1.25rem;
+  }
+
+  .hero__samurai-wrapper {
+    opacity: 0.5;
   }
 
   .navbar { padding: 0 var(--spacing-sm); }
