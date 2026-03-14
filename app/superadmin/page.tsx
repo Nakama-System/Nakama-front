@@ -11,7 +11,7 @@ import {
   FlagsView,
 } from "../moderation/page";
 
-const API_BASE = "http://localhost:5000/nx-control";
+const API_BASE = "https://nakama-vercel-backend.vercel.app/nx-control";
 
 // ─── "pelis" agregado correctamente al union type ────────
 type View =
