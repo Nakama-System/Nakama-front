@@ -6,12 +6,24 @@ import Image from "next/image";
 import { useAuth } from "../context/authContext";
 import { useAdminNotifications } from "../hooks/useAdminNotifications";
 import { NotificationModal } from "./NotificacionModal";
-import { Coffee } from "lucide-react";
+import {
+  Coffee,
+  Film,
+  Users,
+  MessageSquare,
+  LayoutDashboard,
+  Search,
+  Globe,
+  Settings,
+  LogOut,
+  User,
+  Bell,
+  UserSearch,
+} from "lucide-react";
 import "../styles/navbar.css";
 
 export default function Navbar() {
   const { user, token, isAuthenticated, loading, logout } = useAuth();
-  // ↑ token viene directo del contexto — estable entre renders, sin localStorage aquí
 
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -20,10 +32,10 @@ export default function Navbar() {
   const perfilRef = useRef<HTMLDivElement>(null);
   const notiRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
 
   const { notifs, unread, markOneRead, markAllRead, deleteOne, deleteAll } =
     useAdminNotifications(isAuthenticated ? token : null);
-  // ↑ token es el mismo string estable del contexto, no se recrea en cada render
 
   // Scroll
   useEffect(() => {
@@ -44,31 +56,40 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  // Click fuera del menú mobile
+  // Click fuera del menú mobile — excluye el botón hamburger para no conflicto
   useEffect(() => {
     if (!menuAbierto) return;
+
     function onClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+      const target = e.target as Node;
+      const clickedHamburger =
+        hamburgerRef.current && hamburgerRef.current.contains(target);
+      const clickedMenu =
+        menuRef.current && menuRef.current.contains(target);
+
+      if (!clickedHamburger && !clickedMenu) {
         setMenuAbierto(false);
+      }
     }
+
+    // Delay para que el propio click que abrió no lo cierre
     const timer = setTimeout(() => {
       document.addEventListener("mousedown", onClickOutside);
-    }, 100);
+    }, 50);
+
     return () => {
       clearTimeout(timer);
       document.removeEventListener("mousedown", onClickOutside);
     };
   }, [menuAbierto]);
 
-  // Scroll del body
+  // Scroll del body cuando menú mobile abierto
   useEffect(() => {
-    if (!notiOpen) {
-      document.body.style.overflow = menuAbierto ? "hidden" : "";
-    }
+    document.body.style.overflow = menuAbierto ? "hidden" : "";
     return () => {
-      if (!notiOpen) document.body.style.overflow = "";
+      document.body.style.overflow = "";
     };
-  }, [menuAbierto, notiOpen]);
+  }, [menuAbierto]);
 
   const videoSrc = user?.profileVideo?.url || null;
   const imageSrc = user?.avatarUrl || null;
@@ -81,6 +102,10 @@ export default function Navbar() {
     admin: "ADM",
     superadmin: "SA",
   };
+
+  function toggleMenu() {
+    setMenuAbierto((prev) => !prev);
+  }
 
   function handleLogout() {
     setPerfilOpen(false);
@@ -159,35 +184,32 @@ export default function Navbar() {
               <ul className="navbar__links" role="list">
                 <li>
                   <Link href="/chat" className="navbar__link navbar__icon-link">
-                    <ChatIcon />
+                    <MessageSquare size={18} aria-hidden="true" />
                     <span className="navbar__link-label">Chats</span>
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/grupos"
-                    className="navbar__link navbar__icon-link"
-                  >
-                    <GroupIcon />
+                  <Link href="/grupos" className="navbar__link navbar__icon-link">
+                    <Users size={18} aria-hidden="true" />
                     <span className="navbar__link-label">Grupos</span>
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/comunidad-page"
-                    className="navbar__link navbar__icon-link"
-                  >
-                    <ComunidadIcon />
+                  <Link href="/comunidad-page" className="navbar__link navbar__icon-link">
+                    <Globe size={18} aria-hidden="true" />
                     <span className="navbar__link-label">Comunidad</span>
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/buscar"
-                    className="navbar__link navbar__icon-link"
-                  >
-                    <SearchIcon />
+                  <Link href="/buscar" className="navbar__link navbar__icon-link">
+                    <Search size={18} aria-hidden="true" />
                     <span className="navbar__link-label">Buscar</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/peliculas" className="navbar__link navbar__icon-link">
+                    <Film size={18} aria-hidden="true" />
+                    <span className="navbar__link-label">Películas</span>
                   </Link>
                 </li>
               </ul>
@@ -205,7 +227,7 @@ export default function Navbar() {
                     aria-label="Notificaciones"
                     aria-expanded={notiOpen}
                   >
-                    <BellIcon />
+                    <Bell size={20} aria-hidden="true" />
                     {unread > 0 && (
                       <span className="navbar__badge" aria-hidden="true">
                         {unread > 9 ? "9+" : unread}
@@ -260,42 +282,42 @@ export default function Navbar() {
                         className="navbar__dropdown-link"
                         onClick={() => setPerfilOpen(false)}
                       >
-                        <UserIcon /> Mi perfil
+                        <User size={16} aria-hidden="true" /> Mi perfil
                       </Link>
                       <Link
                         href="/dashboard"
                         className="navbar__dropdown-link"
                         onClick={() => setPerfilOpen(false)}
                       >
-                        <DashboardIcon /> Dashboard
+                        <LayoutDashboard size={16} aria-hidden="true" /> Dashboard
                       </Link>
                       <Link
                         href="/chat"
                         className="navbar__dropdown-link"
                         onClick={() => setPerfilOpen(false)}
                       >
-                        <ChatIcon /> Mis chats
+                        <MessageSquare size={16} aria-hidden="true" /> Mis chats
                       </Link>
                       <Link
                         href="/peliculas"
-                        className="navbar__mobile-link"
-                        onClick={cerrarMenu}
+                        className="navbar__dropdown-link"
+                        onClick={() => setPerfilOpen(false)}
                       >
-                        Peliculas
+                        <Film size={16} aria-hidden="true" /> Películas
                       </Link>
                       <Link
                         href="/grupos"
                         className="navbar__dropdown-link"
                         onClick={() => setPerfilOpen(false)}
                       >
-                        <GroupIcon /> Mis grupos
+                        <Users size={16} aria-hidden="true" /> Mis grupos
                       </Link>
                       <Link
                         href="/buscar?tab=amigos"
                         className="navbar__dropdown-link"
                         onClick={() => setPerfilOpen(false)}
                       >
-                        <SearchPeopleIcon /> Buscar amigos
+                        <UserSearch size={16} aria-hidden="true" /> Buscar amigos
                       </Link>
                       {user.role === "user" && (
                         <>
@@ -305,8 +327,7 @@ export default function Navbar() {
                             className="navbar__dropdown-link navbar__dropdown-link--premium"
                             onClick={() => setPerfilOpen(false)}
                           >
-                            <Coffee size={18} style={{ marginRight: "6px" }} />
-                            Donar
+                            <Coffee size={16} aria-hidden="true" /> Donar
                           </Link>
                         </>
                       )}
@@ -316,13 +337,13 @@ export default function Navbar() {
                         className="navbar__dropdown-link"
                         onClick={() => setPerfilOpen(false)}
                       >
-                        <SettingsIcon /> Configuración
+                        <Settings size={16} aria-hidden="true" /> Configuración
                       </Link>
                       <button
                         className="navbar__dropdown-link navbar__dropdown-link--logout"
                         onClick={handleLogout}
                       >
-                        <LogoutIcon /> Cerrar sesión
+                        <LogOut size={16} aria-hidden="true" /> Cerrar sesión
                       </button>
                     </div>
                   )}
@@ -331,10 +352,12 @@ export default function Navbar() {
 
               {/* Hamburger mobile */}
               <button
+                ref={hamburgerRef}
                 className={`navbar__hamburger ${menuAbierto ? "navbar__hamburger--open" : ""}`}
-                onClick={() => setMenuAbierto((p) => !p)}
+                onClick={toggleMenu}
                 aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
                 aria-expanded={menuAbierto}
+                aria-controls="navbar-mobile-menu"
               >
                 <span />
                 <span />
@@ -351,40 +374,35 @@ export default function Navbar() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/peliculas" className="navbar__link">
+                    <Film size={16} aria-hidden="true" style={{ marginRight: 6 }} />
+                    Películas
+                  </Link>
+                </li>
+                <li>
                   <Link href="/login" className="navbar__link">
                     Iniciar sesión
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/registro"
-                    className="navbar__link navbar__link--outline"
-                  >
+                  <Link href="/registro" className="navbar__link navbar__link--outline">
                     Registrarse
                   </Link>
                 </li>
-                <Link
-                  href="/peliculas"
-                  className="navbar__mobile-link"
-                  onClick={cerrarMenu}
-                >
-                  Peliculas
-                </Link>
                 <li>
-                  <Link
-                    href="/donar"
-                    className="navbar__link navbar__link--premium"
-                  >
-                    <Coffee size={18} style={{ marginRight: "6px" }} />
+                  <Link href="/donar" className="navbar__link navbar__link--premium">
+                    <Coffee size={16} aria-hidden="true" style={{ marginRight: 6 }} />
                     Donar
                   </Link>
                 </li>
               </ul>
               <button
+                ref={hamburgerRef}
                 className={`navbar__hamburger ${menuAbierto ? "navbar__hamburger--open" : ""}`}
-                onClick={() => setMenuAbierto((p) => !p)}
+                onClick={toggleMenu}
                 aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
                 aria-expanded={menuAbierto}
+                aria-controls="navbar-mobile-menu"
               >
                 <span />
                 <span />
@@ -397,6 +415,7 @@ export default function Navbar() {
 
       {/* ════════ MOBILE MENU ════════ */}
       <div
+        id="navbar-mobile-menu"
         ref={menuRef}
         className={`navbar__mobile-menu ${menuAbierto ? "navbar__mobile-menu--open" : ""}`}
         role="menu"
@@ -423,7 +442,6 @@ export default function Navbar() {
             </div>
             <div className="navbar__mobile-divider" />
 
-            {/* Notificaciones en mobile menu */}
             <button
               className="navbar__mobile-link"
               onClick={() => {
@@ -431,88 +449,55 @@ export default function Navbar() {
                 setTimeout(() => setNotiOpen(true), 150);
               }}
             >
-              🔔 Notificaciones
+              <Bell size={18} aria-hidden="true" />
+              Notificaciones
               {unread > 0 && (
-                <span
-                  style={{
-                    marginLeft: 8,
-                    background: "#e84040",
-                    color: "#fff",
-                    fontSize: "0.7rem",
-                    fontWeight: 800,
-                    borderRadius: "99px",
-                    padding: "1px 7px",
-                  }}
-                >
+                <span className="navbar__mobile-badge">
                   {unread > 9 ? "9+" : unread}
                 </span>
               )}
             </button>
 
-            <Link
-              href="/perfil"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              👤 Mi perfil
+            <Link href="/perfil" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <User size={18} aria-hidden="true" />
+              Mi perfil
             </Link>
-            <Link
-              href="/dashboard"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              📊 Dashboard
+            <Link href="/dashboard" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <LayoutDashboard size={18} aria-hidden="true" />
+              Dashboard
             </Link>
-            <Link
-              href="/chat"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              💬 Mis chats
+            <Link href="/chat" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <MessageSquare size={18} aria-hidden="true" />
+              Mis chats
             </Link>
-            <Link
-              href="/peliculas"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              Peliculas
+            <Link href="/peliculas" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <Film size={18} aria-hidden="true" />
+              Películas
             </Link>
-            <Link
-              href="/grupos"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              👥 Mis grupos
+            <Link href="/grupos" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <Users size={18} aria-hidden="true" />
+              Mis grupos
             </Link>
-            <Link
-              href="/buscar"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              🔍 Buscar amigos
+            <Link href="/buscar" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <UserSearch size={18} aria-hidden="true" />
+              Buscar amigos
             </Link>
-            <Link
-              href="/comunidad"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              🌐 Comunidad
+            <Link href="/comunidad" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <Globe size={18} aria-hidden="true" />
+              Comunidad
             </Link>
-            <Link
-              href="/configuracion"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              ⚙️ Configuración
+            <Link href="/configuracion" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <Settings size={18} aria-hidden="true" />
+              Configuración
             </Link>
 
             {user.role === "user" && (
               <Link
                 href="/donar"
-                className="navbar__mobile-link navbar__mobile-link--premium flex items-center gap-2"
+                className="navbar__mobile-link navbar__mobile-link--premium"
                 onClick={cerrarMenu}
               >
-                <Coffee size={18} />
+                <Coffee size={18} aria-hidden="true" />
                 Donar
               </Link>
             )}
@@ -521,7 +506,8 @@ export default function Navbar() {
               className="navbar__mobile-link navbar__mobile-link--logout"
               onClick={handleLogout}
             >
-              🚪 Cerrar sesión
+              <LogOut size={18} aria-hidden="true" />
+              Cerrar sesión
             </button>
           </>
         ) : (
@@ -529,33 +515,22 @@ export default function Navbar() {
             <Link href="/" className="navbar__mobile-link" onClick={cerrarMenu}>
               Inicio
             </Link>
-            <Link
-              href="/login"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
+            <Link href="/peliculas" className="navbar__mobile-link" onClick={cerrarMenu}>
+              <Film size={18} aria-hidden="true" />
+              Películas
+            </Link>
+            <Link href="/login" className="navbar__mobile-link" onClick={cerrarMenu}>
               Iniciar sesión
             </Link>
-            <Link
-              href="/registro"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
+            <Link href="/registro" className="navbar__mobile-link" onClick={cerrarMenu}>
               Registrarse
-            </Link>
-            <Link
-              href="/peliculas"
-              className="navbar__mobile-link"
-              onClick={cerrarMenu}
-            >
-              Peliculas
             </Link>
             <Link
               href="/donar"
               className="navbar__mobile-link navbar__mobile-link--premium"
               onClick={cerrarMenu}
             >
-              <Coffee size={18} style={{ marginRight: "6px" }} />
+              <Coffee size={18} aria-hidden="true" />
               Donar
             </Link>
           </>
@@ -575,171 +550,5 @@ export default function Navbar() {
         />
       )}
     </>
-  );
-}
-
-/* ── Íconos ───────────────────────────────────────────────── */
-function ChatIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-function GroupIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-function ComunidadIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  );
-}
-function SearchIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-function BellIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
-function UserIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-function DashboardIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <rect x="3" y="3" width="7" height="7" />
-      <rect x="14" y="3" width="7" height="7" />
-      <rect x="14" y="14" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" />
-    </svg>
-  );
-}
-function SearchPeopleIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-function SettingsIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-function LogoutIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
   );
 }
