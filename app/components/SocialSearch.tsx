@@ -12,7 +12,7 @@ import {
   Instagram, ExternalLink, AlertCircle,
 } from "lucide-react";
 
-const API = "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 // ── Íconos de redes (SVG inline porque lucide no los trae todos) ──
 function TikTokIcon({ size = 16 }: { size?: number }) {
