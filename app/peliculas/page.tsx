@@ -3,7 +3,6 @@
 /**
  * app/peliculas/page.tsx — Nakama · Catálogo de Películas
  */
-
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/authContext";
@@ -246,8 +245,8 @@ function HeroSection({ total, onExplore }: { total: number; onExplore: () => voi
 
         <div className="nk-hero__stats">
           {[
-            { val: total > 0 ? `${total}+` : "500+", lbl: "Películas"  },
-            { val: "12K",                             lbl: "Episodios"  },
+            { val: total > 0 ? `${total}+` : "0+", lbl: "Películas"  },
+            { val: "0K",                             lbl: "Episodios"  },
             { val: "HD",                              lbl: "Calidad"    },
             { val: "0",                               lbl: "Anuncios"   },
           ].map((s, i) => (
@@ -832,3 +831,5 @@ export default function PeliculasPage() {
     </main>
   );
 }
+
+
