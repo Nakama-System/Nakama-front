@@ -35,7 +35,7 @@ interface Errors {
   global?: string;
 }
 
-const API = "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 function calcAge(d: string) {
   if (!d) return 0;
