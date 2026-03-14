@@ -22,7 +22,7 @@ function ForgotForm() {
     setLoading(true);
     setError("");
     try {
-      const res  = await fetch("http://localhost:5000/auth/forgot-password", {  // ← CORRECTO
+      const res  = await fetch("https://nakama-vercel-backend.vercel.app/auth/forgot-password", {  // ← CORRECTO
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ email }),
@@ -135,7 +135,7 @@ function ResetForm({ token }: { token: string }) {
     setLoading(true);
     setError("");
     try {
-      const res  = await fetch("http://localhost:5000/auth/reset-password", {  // ← CORRECTO
+      const res  = await fetch("https://nakama-vercel-backend.vercel.app/auth/reset-password", {  // ← CORRECTO
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ token, password }),
