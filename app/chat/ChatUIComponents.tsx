@@ -54,7 +54,7 @@ import {
   UserX,
 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 // ── Tipos exportados ──────────────────────────────────────
 export type RoomType = "private" | "group" | "community";
