@@ -12,7 +12,7 @@ import {
   Lock, Unlock, UserMinus, AlertCircle,
 } from "lucide-react";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 interface UserSuggestion {
   _id: string;
