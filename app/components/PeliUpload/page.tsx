@@ -18,7 +18,7 @@ import {
 import { useAuth } from "../../context/authContext";
 import "../../styles/moviesup.css";
 
-const API = "http://localhost:5000";
+const API = "https://nakama-vercel-backend.vercel.app";
 
 // ⚠ Debe coincidir exactamente con el enum del modelo Movie.js
 const CATEGORIES = [
