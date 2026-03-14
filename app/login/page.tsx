@@ -24,7 +24,7 @@ interface RegisterForm {
 // ─── Google OAuth ────────────────────────────────────────
 function handleGoogleAuth() {
   // Redirige al backend Google OAuth
-  window.location.href = `http://localhost:5000/auth/google`;
+  window.location.href = `https://nakama-vercel-backend.vercel.app/auth/google`;
 }
 
 // ═════════════════════════════════════════════════════════
@@ -149,7 +149,7 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [showPass, setShowPass] = useState(false);
 
-  const API = "http://localhost:5000";
+  const API = "https://nakama-vercel-backend.vercel.app";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -289,7 +289,7 @@ function RegisterForm() {
   >({});
   const [showPass, setShowPass] = useState(false);
 
-  const API = "http://localhost:5000";
+  const API = "https://nakama-vercel-backend.vercel.app";
 
   function validate() {
     const e: typeof errors = {};
