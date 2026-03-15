@@ -336,7 +336,7 @@ export default function CreateChallengePage() {
   // Cargar miembros de la comunidad
   useEffect(() => {
     if (!communityId || !token) { setMembersLoading(false); return; }
-    fetch(`https://nakama-vercel-backend.vercel.app/comunidades/${communityId}/members`, {
+    fetch(`https://nakama-backend-render.onrender.com/comunidades/${communityId}/members`, {
       headers: { Authorization: `Bearer ${token}` }, credentials: "include",
     })
       .then(r => r.json())
@@ -400,7 +400,7 @@ export default function CreateChallengePage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("https://nakama-vercel-backend.vercel.app/battles/create", {
+      const res = await fetch("https://nakama-backend-render.onrender.com/battles/create", {
         method:      "POST",
         credentials: "include",
         headers:     { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
