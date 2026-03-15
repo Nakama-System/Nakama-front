@@ -2477,13 +2477,18 @@ export default function CommunityPage() {
     "--cp-danger": themeObj.vars.dangerFg,
   } as React.CSSProperties;
 
-  const loadCommunity = useCallback(async () => {
-    if (!communityId) return;
-    try {
-      const res = await fetch(`${API}/comunidades/${communityId}`, {
-        headers: { Authorization: `Bearer ${tok()}` },
-      });
-      const data = await res.json();
+const loadCommunity = useCallback(async () => {
+  if (!communityId) return;
+  console.log("🔍 Fetching:", `${API}/comunidades/${communityId}`);
+  try {
+    const res = await fetch(`${API}/comunidades/${communityId}`, {
+      headers: { Authorization: `Bearer ${tok()}` },
+    });
+    console.log("🔍 Status:", res.status);
+    const data = await res.json();
+    console.log("🔍 Response:", data);
+
+      
       if (res.ok) {
         setCommunity(data);
         setEditName(data.name ?? "");
