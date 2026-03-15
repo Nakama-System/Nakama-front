@@ -87,7 +87,7 @@ export default function BattleFinisher({
     // Enviar al servidor
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "https://nakama-backend-render.onrender.com"}/battles/${battleId}/finish`,
+        `https://nakama-backend-render.onrender.com/battles/${battleId}/finish`,
         {
           method:  "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
