@@ -89,7 +89,7 @@ interface AckOk<T = undefined> { ok: true; data?: T; }
 interface AckErr { ok: false; error: string; }
 type Ack<T = undefined> = AckOk<T> | AckErr;
 
-const API = "https://nakama-vercel-backend.vercel.app";
+const API = "https://nakama-backend-render.onrender.com";
 const WS_URL = "https://nakama-backend-render.onrender.com";
 
 // ══════════════════════════════════════════════════════════
