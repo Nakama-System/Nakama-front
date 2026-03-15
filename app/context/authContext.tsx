@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-const API = "https://nakama-vercel-backend.vercel.app";
+const API = "https://nakama-backend-render.onrender.com";
 
 // Rutas que NO deben redirigir a "/" aunque el token esté vencido
 const PUBLIC_PATHS = ["/", "/login", "/registro", "/registro/google"];
