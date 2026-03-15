@@ -6,7 +6,8 @@ import { createPortal } from "react-dom";
 import { Swords, X, Check, Clock } from "lucide-react";
 import { io } from "socket.io-client";
 
-const API = "https://nakama-backend-render.onrender.com";
+const API       = "https://nakama-vercel-backend.vercel.app";       // HTTP REST
+const SOCKET_URL = "https://nakama-backend-render.onrender.com";    // WebSockets
 
 interface BattleInvitation {
   roomId:        string;
@@ -48,17 +49,16 @@ export default function BattleInvitationModal({ invitation, token, onClose }: Pr
     if (loading) return;
     setLoading("accept");
     try {
-      // 1. Llamar al endpoint HTTP para marcar como "accepted" en la DB
+      // 1. Marcar como "accepted" en la DB vía HTTP (Vercel OK)
       await fetch(`${API}/battles/${invitation.roomId}/accept`, {
         method:      "POST",
         credentials: "include",
         headers:     { Authorization: `Bearer ${token}` },
       });
 
-      // ✅ FIX 2: hacer socket join a la battle room ANTES de navegar
-      // Esto garantiza que el invitado recibirá battle:game_start
-      // cuando el creador pulse "Iniciar" o cuando pasen los 15s
-      const tempSocket = io(API, {
+      // 2. Socket join previo para que el invitado esté en la room
+      //    antes de navegar — DEBE apuntar a Render (WebSockets)
+      const tempSocket = io(SOCKET_URL, {
         auth:            { token },
         withCredentials: true,
         transports:      ["websocket"],
