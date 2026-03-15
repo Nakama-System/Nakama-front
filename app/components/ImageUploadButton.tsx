@@ -8,7 +8,6 @@
 //  - Preview antes de enviar
 //  - Progreso XHR real
 // ═══════════════════════════════════════════════════════════
-
 import { useRef, useState, useCallback } from "react";
 import {
   Paperclip, X, Send, RefreshCw, Loader2,
