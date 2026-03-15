@@ -12,7 +12,9 @@ import {
   SkipForward, SkipBack, Play, Pause,
 } from "lucide-react";
 
-const API =  "https://nakama-backend-render.onrender.com";
+// ✅ IMPORTANTE: debe apuntar al backend Render (soporta WebSockets),
+//    NO a Vercel (que NO soporta WebSockets persistentes).
+const API = "https://nakama-backend-render.onrender.com";
 
 const INVITE_TIMEOUT_SEG = 30;
 
@@ -177,9 +179,11 @@ export default function BatallaPage() {
   const isCreatorRef      = useRef<boolean>(false);
   const startingRef       = useRef<boolean>(false);
   const tokenRef          = useRef<string>("");
+  const globalPhaseRef    = useRef<GlobalPhase>("lobby");
 
-  useEffect(() => { battleRef.current = battle; },  [battle]);
-  useEffect(() => { tokenRef.current  = token ?? ""; }, [token]);
+  useEffect(() => { battleRef.current     = battle;         }, [battle]);
+  useEffect(() => { tokenRef.current      = token ?? "";    }, [token]);
+  useEffect(() => { globalPhaseRef.current = globalPhase;   }, [globalPhase]);
 
   // ── Música ambiente del lobby ────────────────────────────
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -204,11 +208,10 @@ export default function BatallaPage() {
     }, stepMs);
   }, [router]);
 
-  const myId      = user?.id ?? "";
-  const players   = battle?.players ?? [];
+  const myId    = user?.id ?? "";
+  const players = battle?.players ?? [];
 
-  // ✅ CLAVE: activePlayers excluye declined en todo momento
-  // Esto es lo que se pasa al BattleGame y lo que se muestra en el lobby
+  // ✅ activePlayers excluye declined
   const activePlayers  = players.filter(p => p.status !== "declined");
   const isCreator      = activePlayers.length > 0 && activePlayers[0].userId === myId;
 
@@ -218,7 +221,11 @@ export default function BatallaPage() {
   // ── Socket del LOBBY ─────────────────────────────────────
   useEffect(() => {
     if (!token || token.length < 20) return;
-    const s = io(API, { auth:{ token }, withCredentials:true, transports:["websocket"] });
+    const s = io(API, {
+      auth:            { token },
+      withCredentials: true,
+      transports:      ["websocket"],
+    });
     s.on("connect",       ()  => console.log("[batalla] conectado:", s.id));
     s.on("connect_error", (e) => console.error("[batalla] error:", e.message));
     setSocket(s);
@@ -237,7 +244,7 @@ export default function BatallaPage() {
     } catch {}
 
     fetch(`${API}/battles/${roomId}`, {
-      headers: { Authorization:`Bearer ${token}` },
+      headers:     { Authorization:`Bearer ${token}` },
       credentials: "include",
     })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
@@ -255,7 +262,11 @@ export default function BatallaPage() {
           nombre:     data.nombre  ?? "",
           categorias: data.categorias ?? [],
         });
-        if (data.estado === "active") setGlobalPhase("game");
+        // Si ya está active al hacer fetch, transitar directamente
+        if (data.estado === "active") {
+          setGlobalPhase("game");
+          globalPhaseRef.current = "game";
+        }
       })
       .catch(e => console.error("[batalla] fetch error:", e.message))
       .finally(() => setLoading(false));
@@ -275,12 +286,17 @@ export default function BatallaPage() {
     clearInviteTimer();
     try {
       const res = await fetch(`${API}/battles/${roomId}/start`, {
-        method: "POST",
+        method:  "POST",
         headers: { Authorization:`Bearer ${tokenRef.current}` },
       });
-      if (!res.ok) setGlobalPhase("game");
+      if (!res.ok) {
+        // Fallback: transitar de todas formas
+        setGlobalPhase("game");
+        globalPhaseRef.current = "game";
+      }
     } catch {
       setGlobalPhase("game");
+      globalPhaseRef.current = "game";
     } finally {
       setStarting(false);
       startingRef.current = false;
@@ -301,7 +317,6 @@ export default function BatallaPage() {
         setInviteCountdown(null);
         const current = battleRef.current;
         const myId    = myIdRef.current;
-        // ✅ Solo contar los que aceptaron (no declined)
         const rivals  = (current?.players ?? []).filter(p => p.userId !== myId && p.status === "accepted");
         if (rivals.length >= 1) { doStart(); }
         else { fadeOutAndNavigate("/comunidad"); }
@@ -322,8 +337,13 @@ export default function BatallaPage() {
     if (socket.connected) joinRoom();
     else socket.once("connect", joinRoom);
 
+    // ✅ FIX: escuchar en canal personal user:${myId}
+    // El servidor ahora emite state_update y game_start también a user:${userId}
     const onStateUpdate = (data: { roomId:string; players:BattlePlayer[]; estado:string }) => {
-      console.log("[batalla] state_update →", data.estado);
+      // Ignorar updates de otras salas
+      if (data.roomId && data.roomId !== roomId) return;
+
+      console.log("[batalla] state_update →", data.estado, "phase actual:", globalPhaseRef.current);
 
       const next: BattleState = {
         roomId:     data.roomId,
@@ -336,24 +356,24 @@ export default function BatallaPage() {
       setBattle(next);
       setLoading(false);
 
-      if (data.estado === "active") {
+      // ✅ FIX CRÍTICO: si estado es active y aún estamos en lobby → pasar a game
+      if (data.estado === "active" && globalPhaseRef.current === "lobby") {
+        console.log("[batalla] transitando a game phase por state_update active");
         clearInviteTimer();
         setGlobalPhase("game");
+        globalPhaseRef.current = "game";
         return;
       }
 
       if (!isCreatorRef.current) return;
 
       const myId = myIdRef.current;
-
-      // ✅ Solo consideramos jugadores que NO rechazaron (para lógica de espera)
       const nonDeclined  = data.players.filter(p => p.status !== "declined");
       const creatorAcc   = data.players.find(p => p.userId === myId)?.status === "accepted";
       const hasPending   = nonDeclined.some(p => p.userId !== myId && p.status === "pending");
       const rivalAcc     = nonDeclined.filter(p => p.userId !== myId && p.status === "accepted").length;
       const allActiveAcc = nonDeclined.length >= 2 && nonDeclined.every(p => p.status === "accepted");
 
-      // ✅ Si todos los no-declined rechazaron → nadie queda → cancelar
       const anyoneLeft   = nonDeclined.some(p => p.userId !== myId);
       if (!anyoneLeft && creatorAcc) {
         clearInviteTimer();
@@ -367,10 +387,20 @@ export default function BatallaPage() {
       if (hasPending) {
         startInviteCountdown();
       } else if (rivalAcc === 0) {
-        // Todos rechazaron
         clearInviteTimer();
         fadeOutAndNavigate("/comunidad");
       }
+    };
+
+    // ✅ FIX: escuchar game_start también en el canal personal
+    const onGameStart = (data: any) => {
+      const incomingRoomId = data?.roomId ?? roomId;
+      if (incomingRoomId !== roomId) return;
+      console.log("[batalla] battle:game_start recibido, transitando a game");
+      if (globalPhaseRef.current !== "lobby") return;
+      clearInviteTimer();
+      setGlobalPhase("game");
+      globalPhaseRef.current = "game";
     };
 
     const onOnline   = ({ userId }: { userId:string }) => setOnline(p => new Set(p).add(userId));
@@ -388,6 +418,7 @@ export default function BatallaPage() {
     };
 
     socket.on("battle:state_update",       onStateUpdate);
+    socket.on("battle:game_start",         onGameStart);   // ✅ FIX: escuchar game_start en lobby también
     socket.on("battle:player_online",      onOnline);
     socket.on("battle:player_left",        onLeft);
     socket.on("battle:player_answered",    onAnswered);
@@ -398,6 +429,7 @@ export default function BatallaPage() {
     return () => {
       socket.off("connect",                  joinRoom);
       socket.off("battle:state_update",      onStateUpdate);
+      socket.off("battle:game_start",        onGameStart);
       socket.off("battle:player_online",     onOnline);
       socket.off("battle:player_left",       onLeft);
       socket.off("battle:player_answered",   onAnswered);
@@ -411,7 +443,6 @@ export default function BatallaPage() {
   const estado        = battle?.estado  ?? "waiting";
   const amReady       = players.find(p => p.userId===myId)?.status === "accepted";
 
-  // ✅ Solo los que no rechazaron
   const nonDeclined   = activePlayers;
   const allReady      = nonDeclined.length >= 2 && nonDeclined.every(p => p.status === "accepted");
   const readyCount    = nonDeclined.filter(p => p.status === "accepted").length;
@@ -442,19 +473,18 @@ export default function BatallaPage() {
     return (
       <BattleGame
         roomId={roomId}
-        // ✅ Solo los que aceptaron — los declined nunca entran al juego
         players={activePlayers}
         categorias={battle.categorias}
         myUserId={myId}
         isCreator={isCreator}
         token={token}
         onFinish={(finalPlayers) => {
-          // ✅ finalPlayers ya viene filtrado (sin declined) desde BattleGame
           const sorted   = [...finalPlayers].sort((a,b) => b.score - a.score);
           const winnerId = sorted[0]?.userId ?? null;
           const isPact   = sorted.length >= 2 && sorted[0].score === sorted[1].score;
           setFinishPayload({ players:finalPlayers, winnerId, tipo: isPact ? "pact" : "win" });
           setGlobalPhase("finishing");
+          globalPhaseRef.current = "finishing";
         }}
       />
     );
@@ -505,7 +535,6 @@ export default function BatallaPage() {
           </div>
         ) : (
           <>
-            {/* ✅ Solo mostramos los jugadores que NO rechazaron en el grid principal */}
             <div style={S.grid(nonDeclined.length)}>
               {nonDeclined.map(p => (
                 <PlayerCard key={p.userId} player={p}
@@ -516,7 +545,6 @@ export default function BatallaPage() {
               ))}
             </div>
 
-            {/* ✅ Los que rechazaron aparecen en una fila separada abajo, no en el grid principal */}
             {players.some(p => p.status === "declined") && (
               <div style={{ display:"flex", flexWrap:"wrap", gap:8, justifyContent:"center", marginTop:8 }}>
                 {players.filter(p => p.status === "declined").map(p => (
@@ -627,7 +655,10 @@ export default function BatallaPage() {
         {estado === "active" && globalPhase === "lobby" && (
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
             <div style={{ color:"#22c55e", fontWeight:700, fontSize:"1rem" }}>🎮 ¡Batalla iniciada!</div>
-            <button style={{ ...S.btnOrange, fontSize:"0.85rem", padding:"10px 28px" }} onClick={() => setGlobalPhase("game")}>
+            <button style={{ ...S.btnOrange, fontSize:"0.85rem", padding:"10px 28px" }} onClick={() => {
+              setGlobalPhase("game");
+              globalPhaseRef.current = "game";
+            }}>
               Entrar al juego →
             </button>
           </div>
