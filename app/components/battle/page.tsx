@@ -8,7 +8,7 @@ import { io, Socket } from "socket.io-client";
 import BattleGame from "../../batallapage/BattleGame";
 import BattleFinisher from "../../batallapage/Battlefinisher";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API = "https://nakama-backend-render.onrender.com";
 
 interface RoomData {
   roomId: string;
