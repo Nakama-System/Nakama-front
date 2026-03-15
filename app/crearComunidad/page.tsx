@@ -520,42 +520,60 @@ export default function CrearComunidadPage() {
 
   // Crear comunidad
   async function handleCreate() {
-    if (!name.trim()) {
-      setError("El nombre es obligatorio.");
+  if (!name.trim()) {
+    setError("El nombre es obligatorio.");
+    return;
+  }
+  setError("");
+  setCreating(true);
+
+  const freshToken = localStorage.getItem("nakama_token") ?? "";
+
+  const payload = {
+    name: name.trim(),
+    description: description.trim(),
+    avatarUrl: avatarUrl.trim() || "",
+    coverUrl: coverUrl.trim() || "",
+    members: selected.map((s) => s._id),
+  };
+
+  try {
+    const res = await fetch(`${API}/comunidades`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${freshToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.message ?? "Error al crear la comunidad.");
+      setCreating(false);
       return;
     }
-    setError("");
-    setCreating(true);
 
-    const payload = {
-      name: name.trim(),
-      description: description.trim(),
-      avatarUrl: avatarUrl.trim() || "",
-      coverUrl: coverUrl.trim() || "",
-      members: selected.map((s) => s._id),
-    };
+    // El _id puede llegar como ObjectId (objeto) o string
+    const rawId = data._id ?? data.id ?? "";
+    const communityId = typeof rawId === "object"
+      ? String(rawId?.toString?.() ?? JSON.stringify(rawId))
+      : String(rawId);
 
-    try {
-      const res = await fetch(`${API}/comunidades`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message ?? "Error al crear la comunidad.");
-        return;
-      }
-      router.push(`/comunidad/${data._id}`);
-    } catch {
-      setError("Error de red. Revisá tu conexión.");
-    } finally {
+    if (!communityId || communityId === "undefined" || communityId === "null" || communityId === "[object Object]") {
+      setError("La comunidad se creó pero hubo un error al obtener el ID. Buscala en tu lista de comunidades.");
       setCreating(false);
+      return;
     }
+
+    router.push(`/comunidad/${communityId}`);
+  } catch (err) {
+    setError("Error de red. Revisá tu conexión.");
+  } finally {
+    setCreating(false);
   }
+}
 
   if (loading || !user)
     return (
