@@ -71,8 +71,8 @@ import {
 import { useAuth } from "../../context/authContext";
 import "../../styles/comunidad.css";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "https://nakama-backend-render.onrender.com";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "https://nakama-backend-render.onrender.com";
+const API = "https://nakama-backend-render.onrender.com";
+const WS_URL = "https://nakama-backend-render.onrender.com";
 
 export type CommunityTheme =
   | "dark"
