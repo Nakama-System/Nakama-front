@@ -14,7 +14,7 @@ import {
   ImageIcon, FileVideo, AlertTriangle,
 } from "lucide-react";
 
-const API = "https://nakama-vercel-backend.vercel.app";
+const API = "https://nakama-backend-render.onrender.com";
 
 export type UploadedFile = {
   url: string;
