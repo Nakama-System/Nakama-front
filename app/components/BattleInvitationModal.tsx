@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { Swords, X, Check, Clock } from "lucide-react";
 import { io } from "socket.io-client";
 
-const API       = "https://nakama-vercel-backend.vercel.app";       // HTTP REST
+const API       = "https://nakama-backend-render.onrender.com";       // HTTP REST
 const SOCKET_URL = "https://nakama-backend-render.onrender.com";    // WebSockets
 
 interface BattleInvitation {
