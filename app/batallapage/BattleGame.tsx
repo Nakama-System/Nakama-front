@@ -49,7 +49,7 @@ type GamePhase =
 // ═══════════════════════════════════════════════════════════
 // CONSTANTES
 // ═══════════════════════════════════════════════════════════
-const API = process.env.NEXT_PUBLIC_API_URL || "https://nakama-backend-render.onrender.com";
+const API = "https://nakama-backend-render.onrender.com";
 
 const CATEGORIAS_MAP: Record<string, string> = {
   shonen:"⚔️ Shonen", seinen:"🎭 Seinen", isekai:"🌀 Isekai",
