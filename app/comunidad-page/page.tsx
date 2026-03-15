@@ -10,7 +10,7 @@ import "../styles/comunidad-page.css";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/authContext";
 
-const API = "https://nakama-vercel-backend.vercel.app";
+const API = "https://nakama-backend-render.onrender.com";
 
 // ── Types ──────────────────────────────────────────────────
 interface Community {
