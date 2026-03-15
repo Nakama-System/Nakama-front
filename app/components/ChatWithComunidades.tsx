@@ -22,7 +22,7 @@ import {
   AlertCircle, Zap, Hash,
 } from "lucide-react";
 
-const API    =  "https://nakama-vercel-backend.vercel.app";
+const API    =  "https://nakama-backend-render.onrender.com";
 const WS_URL = "https://nakama-backend-render.onrender.com";
 
 // ─── Types ──────────────────────────────────────────────────
