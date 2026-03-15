@@ -15,7 +15,7 @@ import {
   Mic, MicOff, Send, X, Trash2, Loader2,
 } from "lucide-react";
 
-const API =  "https://nakama-vercel-backend.vercel.app";
+const API =  "https://nakama-backend-render.onrender.com";
 
 export type AudioFile = {
   url: string;
