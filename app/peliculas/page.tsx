@@ -24,16 +24,6 @@ import {
    ══════════════════════════════════════════════════ */
 const API_BASE  = "https://nakama-vercel-backend.vercel.app";
 const PAGE_SIZE = 9;
-const NEXT_PUBLIC_SITE_URL = "https://nakama-front.vercel.app"
-
-
-// ── URL base para compartir ───────────────────────────────
-const SHARE_BASE =
-
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (typeof window !== "undefined" && window.location.origin !== "https://nakama-front.vercel.app"
-    ? window.location.origin
-    : "https://nakama-front.vercel.app");
 
 // ── Categorías unificadas ─────────────────────────────────
 const CATEGORIES = [
