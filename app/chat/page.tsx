@@ -92,6 +92,22 @@ type Ack<T = undefined> = AckOk<T> | AckErr;
 const API = "https://nakama-backend-render.onrender.com";
 const WS_URL = "https://nakama-backend-render.onrender.com";
 
+// ── Helper: extrae videoSrc de cualquier objeto usuario/sugerencia ──
+function getVideoSrc(obj: any): string | undefined {
+  return (
+    obj?.profileVideo?.url ||
+    obj?.videoUrl ||
+    obj?.profileVideoUrl ||
+    undefined
+  );
+}
+
+// ── Helper: determina si una URL es un video ──
+function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
 // ══════════════════════════════════════════════════════════
 // useScrollBlur hook
 // ══════════════════════════════════════════════════════════
@@ -132,6 +148,7 @@ function normalizeMessage(m: ServerMessage): Message {
     senderId: senderObj?._id ?? (typeof m.sender === "string" ? m.sender : ""),
     senderName: senderObj?.username ?? "Sistema",
     senderAvatar: senderObj?.avatarUrl,
+    // ✅ Siempre pasar el video del sender si existe
     senderVideo: senderObj?.profileVideo?.url,
     content: m.deleted ? "Mensaje eliminado" : m.text,
     type: m.attachment ? (m.attachment.type as Message["type"]) : "text",
@@ -499,7 +516,13 @@ export default function ChatsPage() {
       });
       const conv = await res.json();
       if (!res.ok) return;
-      const newConv: Conversation = { _id: conv._id, type: "private", name: u.username, avatarUrl: u.avatarUrl || conv.avatarUrl, unread: 0, lastMessage: conv.lastMessage || "", lastTime: conv.lastTime || "", otherId: u._id };
+      const newConv: Conversation = {
+        _id: conv._id, type: "private", name: u.username,
+        avatarUrl: u.avatarUrl || conv.avatarUrl,
+        // ✅ Guardamos también el video del otro usuario en la conversación
+        ...(getVideoSrc(u) ? { avatarUrl: getVideoSrc(u) } : {}),
+        unread: 0, lastMessage: conv.lastMessage || "", lastTime: conv.lastTime || "", otherId: u._id,
+      };
       setConversations((prev) => upsertConv(prev, newConv));
       setActiveConv(newConv); setTab("chats");
       if (window.innerWidth < 768) setSidebarOpen(false);
@@ -520,7 +543,14 @@ export default function ChatsPage() {
     const content = input.trim(), rt = roomType(activeConv), convSnap = activeConv;
     setInput("");
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const tempMsg: Message = { _id: tempId, senderId: user!.id, senderName: user!.username, senderAvatar: (user as any).avatarUrl, senderVideo: (user as any).profileVideo?.url, content, type: "text", reactions: [], status: "sent", isSystem: false, deleted: false, createdAt: new Date().toISOString(), read: false };
+    const tempMsg: Message = {
+      _id: tempId, senderId: user!.id, senderName: user!.username,
+      senderAvatar: (user as any).avatarUrl,
+      // ✅ Video del usuario logueado en mensajes optimistas
+      senderVideo: getVideoSrc(user),
+      content, type: "text", reactions: [], status: "sent",
+      isSystem: false, deleted: false, createdAt: new Date().toISOString(), read: false,
+    };
     setMessages((prev) => [...prev, tempMsg]);
     scrollToBottom();
     (socketRef.current as any).emit("message:send", { roomType: rt, roomId: convSnap._id, text: content }, (res: any) => {
@@ -537,7 +567,15 @@ export default function ChatsPage() {
     if (!activeConv || !socketRef.current) return;
     const rt = roomType(activeConv), convSnap = activeConv;
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const tempMsg: Message = { _id: tempId, senderId: user!.id, senderName: user!.username, senderAvatar: (user as any).avatarUrl, senderVideo: (user as any).profileVideo?.url, content: caption || "", type: file.type, fileUrl: file.url, thumbUrl: file.thumbnailUrl, duration: file.duration, waveform: file.waveform, reactions: [], status: "sent", isSystem: false, deleted: false, createdAt: new Date().toISOString(), read: false };
+    const tempMsg: Message = {
+      _id: tempId, senderId: user!.id, senderName: user!.username,
+      senderAvatar: (user as any).avatarUrl,
+      // ✅ Video del usuario logueado en archivos optimistas
+      senderVideo: getVideoSrc(user),
+      content: caption || "", type: file.type, fileUrl: file.url, thumbUrl: file.thumbnailUrl,
+      duration: file.duration, waveform: file.waveform, reactions: [], status: "sent",
+      isSystem: false, deleted: false, createdAt: new Date().toISOString(), read: false,
+    };
     setMessages((prev) => [...prev, tempMsg]);
     scrollToBottom();
     (socketRef.current as any).emit("message:send", { roomType: rt, roomId: convSnap._id, text: caption || "", attachment: { type: file.type, url: file.url, thumbnailUrl: file.thumbnailUrl || "", width: file.width || 0, height: file.height || 0, duration: file.duration || 0, size: file.size, mimeType: file.mimeType } }, (res: any) => {
@@ -559,7 +597,16 @@ export default function ChatsPage() {
     const recipientIds = convSnap.otherId ? [convSnap.otherId] : [];
     if (!recipientIds.length) return;
     const tempId = `temp_eph_${Date.now()}`;
-    const tempMsg: Message = { _id: tempId, senderId: user!.id, senderName: user!.username, senderAvatar: (user as any).avatarUrl, content: caption || "", type: "ephemeral", fileUrl: file.thumbnailUrl || file.url, thumbUrl: file.thumbnailUrl, ephemeral: true, ephConfig: { ...config, recipients: [] }, ephViewed: false, reactions: [], status: "sent", isSystem: false, deleted: false, createdAt: new Date().toISOString(), read: false };
+    const tempMsg: Message = {
+      _id: tempId, senderId: user!.id, senderName: user!.username,
+      senderAvatar: (user as any).avatarUrl,
+      // ✅ Video del usuario logueado en efímeros optimistas
+      senderVideo: getVideoSrc(user),
+      content: caption || "", type: "ephemeral", fileUrl: file.thumbnailUrl || file.url,
+      thumbUrl: file.thumbnailUrl, ephemeral: true, ephConfig: { ...config, recipients: [] },
+      ephViewed: false, reactions: [], status: "sent", isSystem: false, deleted: false,
+      createdAt: new Date().toISOString(), read: false,
+    };
     setMessages((prev) => [...prev, tempMsg]);
     scrollToBottom();
     try {
@@ -680,6 +727,10 @@ export default function ChatsPage() {
   const selectedMsgList = messages.filter((m) => selectedMsgs.has(m._id));
   const showingAgenda = tab === "agenda";
 
+  // ✅ Video del usuario logueado — igual que el navbar
+  const myVideoSrc = getVideoSrc(user);
+  const myImgSrc = (user as any).avatarUrl ?? undefined;
+
   return (
     <div className="chat-root" data-theme={activeTheme} style={{ "--chat-accent": currentTheme.accent } as React.CSSProperties}>
 
@@ -694,7 +745,25 @@ export default function ChatsPage() {
             </button>
             <button className="chat-sidebar__me-avatar-btn" onClick={() => setShowPrivacyModal(true)}>
               <div className="chat-sidebar__me-avatar-wrap">
-                <UserAvatar videoSrc={(user as any).profileVideo?.url ?? undefined} src={(user as any).avatarUrl ?? undefined} alt={user.username} size={30} />
+                {/* ✅ Mismo patrón que el navbar: video > imagen > placeholder */}
+                {myVideoSrc ? (
+                  <video
+                    src={myVideoSrc}
+                    width={30}
+                    height={30}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                  />
+                ) : (
+                  <UserAvatar
+                    src={myImgSrc}
+                    alt={user.username}
+                    size={30}
+                  />
+                )}
                 <span className={`chat-sidebar__me-dot ${socketReady ? "chat-sidebar__me-dot--online" : ""}`} />
               </div>
             </button>
@@ -702,7 +771,6 @@ export default function ChatsPage() {
             <div className={`chat-sidebar__status ${socketReady ? "chat-sidebar__status--online" : ""}`} />
           </div>
           <div className="chat-sidebar__header-actions">
-            {/* ── Notificaciones: FIX posición del panel ── */}
             <div className="chat-sidebar__notif-wrap" style={{ position: "relative" }}>
               <button
                 className={`chat-icon-btn chat-sidebar__notif-btn ${unreadNotifs > 0 ? "chat-sidebar__notif-btn--active" : ""}`}
@@ -776,10 +844,27 @@ export default function ChatsPage() {
                     {suggestions.map((s) => {
                       const src = sourceConfig(s.source);
                       const inAgenda = agendaIds.has(s._id);
+                      // ✅ Video del usuario sugerido
+                      const suggestionVideo = getVideoSrc(s);
+                      const suggestionImg = !suggestionVideo ? s.avatarUrl : undefined;
                       return (
                         <div key={s._id} className="chat-suggestion chat-suggestion--fadein">
                           <div className="chat-suggestion__avatar">
-                            <UserAvatar src={s.avatarUrl} alt={s.username} size={36} />
+                            {/* ✅ Mismo patrón navbar: video > imagen */}
+                            {suggestionVideo ? (
+                              <video
+                                src={suggestionVideo}
+                                width={36}
+                                height={36}
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                              />
+                            ) : (
+                              <UserAvatar src={suggestionImg} alt={s.username} size={36} />
+                            )}
                             <span className="chat-suggestion__source-dot" style={{ background: src.color }} title={src.label} />
                           </div>
                           <div className="chat-suggestion__info">
@@ -862,7 +947,26 @@ export default function ChatsPage() {
           <div className="chat-empty-state">
             <div className="chat-empty-state__inner">
               <div className="chat-empty-state__avatar-wrap">
-                <UserAvatar videoSrc={(user as any).profileVideo?.url ?? undefined} src={(user as any).avatarUrl ?? undefined} alt={user.username} size={72} fallback={user.username[0]?.toUpperCase()} />
+                {/* ✅ Empty state: mismo patrón navbar */}
+                {myVideoSrc ? (
+                  <video
+                    src={myVideoSrc}
+                    width={72}
+                    height={72}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                  />
+                ) : (
+                  <UserAvatar
+                    src={myImgSrc}
+                    alt={user.username}
+                    size={72}
+                    fallback={user.username[0]?.toUpperCase()}
+                  />
+                )}
                 <span className={`chat-empty-state__avatar-dot ${socketReady ? "chat-empty-state__avatar-dot--online" : ""}`} />
               </div>
               <h2>¡Hola, {user.username}!</h2>
