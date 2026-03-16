@@ -92,20 +92,28 @@ type Ack<T = undefined> = AckOk<T> | AckErr;
 const API = "https://nakama-backend-render.onrender.com";
 const WS_URL = "https://nakama-backend-render.onrender.com";
 
-// ── Helper: extrae videoSrc de cualquier objeto usuario/sugerencia ──
+// ── Helper: detecta si una URL es video ─────────────────
+function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
+// ── Helper: extrae videoSrc de cualquier objeto usuario ──
+// Cubre: profileVideo.url, videoUrl, profileVideoUrl,
+// y también avatarUrl si la URL es un archivo de video
 function getVideoSrc(obj: any): string | undefined {
   return (
     obj?.profileVideo?.url ||
     obj?.videoUrl ||
     obj?.profileVideoUrl ||
-    undefined
+    (isVideoUrl(obj?.avatarUrl) ? obj.avatarUrl : undefined)
   );
 }
 
-// ── Helper: determina si una URL es un video ──
-function isVideoUrl(url?: string): boolean {
-  if (!url) return false;
-  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+// ── Helper: src de imagen (solo si no es video) ──────────
+function getImgSrc(obj: any): string | undefined {
+  const url = obj?.avatarUrl;
+  return url && !isVideoUrl(url) ? url : undefined;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -844,27 +852,16 @@ export default function ChatsPage() {
                     {suggestions.map((s) => {
                       const src = sourceConfig(s.source);
                       const inAgenda = agendaIds.has(s._id);
-                      // ✅ Video del usuario sugerido
                       const suggestionVideo = getVideoSrc(s);
-                      const suggestionImg = !suggestionVideo ? s.avatarUrl : undefined;
                       return (
                         <div key={s._id} className="chat-suggestion chat-suggestion--fadein">
                           <div className="chat-suggestion__avatar">
-                            {/* ✅ Mismo patrón navbar: video > imagen */}
-                            {suggestionVideo ? (
-                              <video
-                                src={suggestionVideo}
-                                width={36}
-                                height={36}
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                                style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", display: "block" }}
-                              />
-                            ) : (
-                              <UserAvatar src={suggestionImg} alt={s.username} size={36} />
-                            )}
+                            <UserAvatar
+                              videoSrc={suggestionVideo}
+                              src={getImgSrc(s)}
+                              alt={s.username}
+                              size={36}
+                            />
                             <span className="chat-suggestion__source-dot" style={{ background: src.color }} title={src.label} />
                           </div>
                           <div className="chat-suggestion__info">
