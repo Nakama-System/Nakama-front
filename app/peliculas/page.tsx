@@ -124,20 +124,7 @@ async function apiFetchMovies(
 async function apiShareMeta(id: string): Promise<ShareMeta> {
   const res = await fetch(`${API_BASE}/moviesup/${id}/share`);
   if (!res.ok) throw new Error("Error al obtener metadatos");
-  const data = await res.json() as ShareMeta;
-
-  // Reemplaza cualquier localhost:3000 por la URL real del sitio
-  const fixUrl = (u: string) =>
-    u.replace(/https?:\/\/localhost:3000/g, SHARE_BASE);
-
-  return {
-    ...data,
-    url:      fixUrl(data.url),
-    whatsapp: fixUrl(data.whatsapp),
-    telegram: fixUrl(data.telegram),
-    twitter:  fixUrl(data.twitter),
-    facebook: fixUrl(data.facebook),
-  };
+  return res.json() as Promise<ShareMeta>;
 }
 
 async function apiVote(id: string, rating: number, token: string | null) {
@@ -831,5 +818,3 @@ export default function PeliculasPage() {
     </main>
   );
 }
-
-
