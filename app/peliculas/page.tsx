@@ -31,9 +31,9 @@ const NEXT_PUBLIC_SITE_URL = "https://nakama-front.vercel.app"
 const SHARE_BASE =
 
   process.env.NEXT_PUBLIC_SITE_URL ||
-  (typeof window !== "undefined" && window.location.origin !== "http://localhost:3000"
+  (typeof window !== "undefined" && window.location.origin !== "https://nakama-front.vercel.app"
     ? window.location.origin
-    : "http://localhost:3000");
+    : "https://nakama-front.vercel.app");
 
 // ── Categorías unificadas ─────────────────────────────────
 const CATEGORIES = [
