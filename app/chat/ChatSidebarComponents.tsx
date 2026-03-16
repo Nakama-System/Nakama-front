@@ -9,13 +9,11 @@ import {
   MessageCircle,
   Users,
   Globe,
-  Plus,
   Search,
   Check,
   X,
   Palette,
   Ban,
-  UserMinus,
   BookUser,
   UserX,
   UserPlus,
@@ -30,36 +28,113 @@ export interface UserSuggestion {
   _id: string;
   username: string;
   avatarUrl?: string;
+  // ✅ Campo real del modelo User.js
+  profileVideo?: {
+    url?: string;
+    thumbnailUrl?: string;
+  };
   role: string;
   mutualCount?: number;
   source: "nakama" | "contacto" | "tiktok" | "instagram" | "facebook";
   online?: boolean;
-  // El servidor devuelve profileVideo como objeto anidado
-  profileVideo?: { url?: string; thumbnailUrl?: string };
 }
 
-// ── Helper: detecta si URL es video por extensión ────────
-function isVideoUrl(url?: string): boolean {
-  if (!url) return false;
-  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
-}
+// ── Helpers — mismo patrón que el navbar ─────────────────
 
-// ── Helper: extrae videoSrc de cualquier objeto usuario ──
-// profileVideo.url > videoUrl > profileVideoUrl > avatarUrl si es video
+/** Devuelve la URL del video de perfil si existe */
 function getVideoSrc(obj: any): string | undefined {
-  return (
-    obj?.profileVideo?.url ||
-    obj?.videoUrl ||
-    obj?.profileVideoUrl ||
-    (isVideoUrl(obj?.avatarUrl) ? obj.avatarUrl : undefined) ||
-    undefined
-  );
+  // El modelo User.js guarda el video en profileVideo.url
+  if (obj?.profileVideo?.url) return obj.profileVideo.url;
+  // Fallback por si viene en otro campo
+  if (obj?.videoUrl) return obj.videoUrl;
+  if (obj?.profileVideoUrl) return obj.profileVideoUrl;
+  // Fallback: avatarUrl que sea .mp4/.webm/.mov
+  if (obj?.avatarUrl && /\.(mp4|webm|mov)(\?|$)/i.test(obj.avatarUrl)) return obj.avatarUrl;
+  return undefined;
 }
 
-// ── Helper: img solo si avatarUrl NO es video ────────────
+/** Devuelve avatarUrl solo si NO es un video */
 function getImgSrc(obj: any): string | undefined {
   const url = obj?.avatarUrl;
-  return url && !isVideoUrl(url) ? url : undefined;
+  if (!url) return undefined;
+  if (/\.(mp4|webm|mov)(\?|$)/i.test(url)) return undefined;
+  return url;
+}
+
+/** Renderiza video o imagen igual que el navbar — directo, sin UserAvatar */
+function AvatarMedia({
+  obj,
+  size,
+  fallback,
+}: {
+  obj: any;
+  size: number;
+  fallback?: string;
+}) {
+  const videoSrc = getVideoSrc(obj);
+  const imgSrc = getImgSrc(obj);
+  const style: React.CSSProperties = {
+    width: size,
+    height: size,
+    minWidth: size,
+    minHeight: size,
+    borderRadius: "50%",
+    objectFit: "cover",
+    display: "block",
+    flexShrink: 0,
+  };
+  const wrapStyle: React.CSSProperties = {
+    width: size,
+    height: size,
+    minWidth: size,
+    minHeight: size,
+    borderRadius: "50%",
+    overflow: "hidden",
+    flexShrink: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.08)",
+  };
+
+  if (videoSrc) {
+    return (
+      <div style={wrapStyle}>
+        <video
+          src={videoSrc}
+          width={size}
+          height={size}
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={style}
+        />
+      </div>
+    );
+  }
+  if (imgSrc) {
+    return (
+      <div style={wrapStyle}>
+        <img
+          src={imgSrc}
+          alt={fallback ?? ""}
+          width={size}
+          height={size}
+          referrerPolicy="no-referrer"
+          style={style}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...wrapStyle, background: "rgba(255,255,255,0.08)" }}>
+      <span style={{ color: "rgba(255,255,255,0.85)", fontWeight: 700, fontSize: size * 0.38 }}>
+        {fallback?.[0]?.toUpperCase() ?? "?"}
+      </span>
+    </div>
+  );
 }
 
 // ── Constantes ────────────────────────────────────────────
@@ -191,8 +266,6 @@ export function AgendaSection({
           <div className="agenda-grid">
             {filtered.map((c, idx) => {
               const src = sourceConfig(c.source);
-              const videoSrc = getVideoSrc(c);
-              const imgSrc = getImgSrc(c);
               return (
                 <div key={c._id ?? idx} className="agenda-card" style={{ "--ag-card-accent": src.color } as React.CSSProperties}>
                   {confirmId === c._id && (
@@ -205,7 +278,8 @@ export function AgendaSection({
                     </div>
                   )}
                   <div className="agenda-card__avatar-wrap">
-                    <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={c.username} size={52} />
+                    {/* ✅ AvatarMedia directo — igual que navbar */}
+                    <AvatarMedia obj={c} size={52} fallback={c.username} />
                     {c.online && <span className="agenda-card__online-dot" />}
                     <div className="agenda-card__source-badge" style={{ background: src.color }} title={src.label}>
                       <span>{src.abbr}</span>
@@ -291,12 +365,11 @@ export function AddContactModal({
             const src = sourceConfig(u.source);
             const isIn = added.has(u._id);
             const inProgress = adding.has(u._id);
-            const videoSrc = getVideoSrc(u);
-            const imgSrc = getImgSrc(u);
             return (
               <div key={u._id} className={`agenda-modal__result ${isIn ? "agenda-modal__result--added" : ""}`}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={u.username} size={36} />
+                  {/* ✅ AvatarMedia directo */}
+                  <AvatarMedia obj={u} size={36} fallback={u.username} />
                   <div style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: src.color, border: "2px solid #0e0e1c", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <span style={{ fontSize: "0.45rem", fontWeight: 800, color: "#fff" }}>{src.abbr}</span>
                   </div>
@@ -322,9 +395,6 @@ export function AddContactModal({
 
 // ══════════════════════════════════════════════════════════
 // ConvItem
-// El servidor NO devuelve profileVideo en /chats, solo avatarUrl.
-// Por eso guardamos el video en avatarUrl cuando lo conocemos
-// (en handleChatWith de page.tsx), y acá lo detectamos.
 // ══════════════════════════════════════════════════════════
 export function ConvItem({
   conv, active, onClick,
@@ -334,17 +404,14 @@ export function ConvItem({
   onClick: () => void;
   currentUserId: string;
 }) {
-  // avatarUrl puede ser imagen O video (lo guardamos así desde page.tsx)
-  const videoSrc = getVideoSrc(conv);
-  const imgSrc = getImgSrc(conv);
-
   return (
     <div
       className={`chat-conv-item ${active ? "chat-conv-item--active" : ""} ${conv.pinned ? "chat-conv-item--pinned" : ""} ${conv.isBlocked ? "chat-conv-item--blocked" : ""}`}
       role="listitem" onClick={onClick}
     >
       <div className="chat-conv-item__avatar">
-        <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={conv.name} size={40} />
+        {/* ✅ AvatarMedia directo — mismo patrón navbar */}
+        <AvatarMedia obj={conv} size={40} fallback={conv.name} />
         {conv.type === "private" && conv.online && <span className="chat-conv-item__online" />}
         {conv.type === "group" && <span className="chat-conv-item__type-badge"><Users size={8} /></span>}
         {conv.type === "community" && <span className="chat-conv-item__type-badge"><Globe size={8} /></span>}
@@ -417,10 +484,7 @@ export function NewChatModal({
       onCreated({
         ...conv,
         name: type === "chat" ? (firstUser?.username ?? conv.name) : conv.name,
-        // Guardamos el video en avatarUrl si existe, así ConvItem lo detecta
-        avatarUrl: type === "chat"
-          ? (getVideoSrc(firstUser) || firstUser?.avatarUrl || conv.avatarUrl)
-          : conv.avatarUrl,
+        avatarUrl: type === "chat" ? (getVideoSrc(firstUser) || firstUser?.avatarUrl || conv.avatarUrl) : conv.avatarUrl,
         unread: 0,
         otherId: type === "chat" ? firstUser?._id : undefined,
       });
@@ -466,29 +530,26 @@ export function NewChatModal({
           </div>
         )}
         <div className="chat-modal__results">
-          {displayList.map((u) => {
-            const videoSrc = getVideoSrc(u);
-            const imgSrc = getImgSrc(u);
-            return (
-              <div
-                key={u._id}
-                className={`chat-modal__result ${selected.find((s) => s._id === u._id) ? "chat-modal__result--selected" : ""}`}
-                onClick={() => {
-                  if (type === "chat") setSelected([u]);
-                  else setSelected((prev) => prev.find((x) => x._id === u._id) ? prev.filter((x) => x._id !== u._id) : [...prev, u]);
-                }}
-              >
-                <div className="chat-modal__result-avatar">
-                  <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={u.username} size={32} />
-                </div>
-                <div className="chat-modal__result-info">
-                  <span className="chat-modal__result-name">@{u.username}</span>
-                  <span className={`chat-modal__result-source chat-modal__result-source--${u.source}`}>{sourceConfig(u.source).label}</span>
-                </div>
-                {selected.find((s) => s._id === u._id) && <Check size={16} className="chat-modal__check" />}
+          {displayList.map((u) => (
+            <div
+              key={u._id}
+              className={`chat-modal__result ${selected.find((s) => s._id === u._id) ? "chat-modal__result--selected" : ""}`}
+              onClick={() => {
+                if (type === "chat") setSelected([u]);
+                else setSelected((prev) => prev.find((x) => x._id === u._id) ? prev.filter((x) => x._id !== u._id) : [...prev, u]);
+              }}
+            >
+              <div className="chat-modal__result-avatar">
+                {/* ✅ AvatarMedia directo */}
+                <AvatarMedia obj={u} size={32} fallback={u.username} />
               </div>
-            );
-          })}
+              <div className="chat-modal__result-info">
+                <span className="chat-modal__result-name">@{u.username}</span>
+                <span className={`chat-modal__result-source chat-modal__result-source--${u.source}`}>{sourceConfig(u.source).label}</span>
+              </div>
+              {selected.find((s) => s._id === u._id) && <Check size={16} className="chat-modal__check" />}
+            </div>
+          ))}
           {searchQ.length >= 2 && displayList.length === 0 && <div className="chat-modal__no-results">No se encontraron usuarios</div>}
         </div>
         <button
