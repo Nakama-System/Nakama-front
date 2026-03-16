@@ -3096,3 +3096,164 @@ body:has(.policy-banner) .chat-root {
     justify-content: center;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   FIX FINAL — avatares de video en sidebar
+   Pegá esto al final de chat.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* El nakama-avatar-wrap ya maneja overflow:hidden internamente.
+   El padre solo necesita NO romper el layout con position:absolute. */
+
+/* conv-item: el overflow:hidden va en el nakama-avatar-wrap, no acá */
+.chat-conv-item__avatar {
+  overflow: visible !important;
+  position: relative !important;
+  width:    40px !important;
+  height:   40px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* El nakama-avatar-wrap dentro del conv-item: tamaño fijo + overflow hidden */
+.chat-conv-item__avatar .nakama-avatar-wrap {
+  width:         40px !important;
+  height:        40px !important;
+  border-radius: 50% !important;
+  overflow:      hidden !important;
+  flex-shrink:   0 !important;
+  position:      relative !important; /* NO absolute */
+}
+
+/* video e img dentro del nakama-avatar-wrap: fill completo */
+.chat-conv-item__avatar .nakama-avatar-wrap video,
+.chat-conv-item__avatar .nakama-avatar-wrap img {
+  position:   absolute !important;
+  inset:      0 !important;
+  width:      100% !important;
+  height:     100% !important;
+  object-fit: cover !important;
+  display:    block !important;
+}
+
+/* sugerencias: mismo fix */
+.chat-suggestion__avatar {
+  overflow: visible !important; /* el dot sale del círculo */
+  position: relative !important;
+  width:    36px !important;
+  height:   36px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.chat-suggestion__avatar .nakama-avatar-wrap {
+  width:         36px !important;
+  height:        36px !important;
+  border-radius: 50% !important;
+  overflow:      hidden !important;
+  flex-shrink:   0 !important;
+  position:      relative !important;
+}
+
+.chat-suggestion__avatar .nakama-avatar-wrap video,
+.chat-suggestion__avatar .nakama-avatar-wrap img {
+  position:   absolute !important;
+  inset:      0 !important;
+  width:      100% !important;
+  height:     100% !important;
+  object-fit: cover !important;
+  display:    block !important;
+}
+
+/* bubble avatar: mismo fix */
+.chat-bubble__avatar {
+  overflow: visible !important;
+  position: relative !important;
+  width:    28px !important;
+  height:   28px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.chat-bubble__avatar .nakama-avatar-wrap {
+  width:         28px !important;
+  height:        28px !important;
+  border-radius: 50% !important;
+  overflow:      hidden !important;
+  flex-shrink:   0 !important;
+  position:      relative !important;
+}
+
+.chat-bubble__avatar .nakama-avatar-wrap video,
+.chat-bubble__avatar .nakama-avatar-wrap img {
+  position:   absolute !important;
+  inset:      0 !important;
+  width:      100% !important;
+  height:     100% !important;
+  object-fit: cover !important;
+  display:    block !important;
+}
+
+/* sidebar me-avatar: mismo fix */
+.chat-sidebar__me-avatar-wrap .nakama-avatar-wrap {
+  width:         30px !important;
+  height:        30px !important;
+  border-radius: 50% !important;
+  overflow:      hidden !important;
+  position:      relative !important;
+}
+
+.chat-sidebar__me-avatar-wrap .nakama-avatar-wrap video,
+.chat-sidebar__me-avatar-wrap .nakama-avatar-wrap img {
+  position:   absolute !important;
+  inset:      0 !important;
+  width:      100% !important;
+  height:     100% !important;
+  object-fit: cover !important;
+  display:    block !important;
+}
+
+/* chat view header avatar: mismo fix */
+.chat-view__header-avatar-wrap .nakama-avatar-wrap {
+  width:         36px !important;
+  height:        36px !important;
+  border-radius: 50% !important;
+  overflow:      hidden !important;
+  position:      relative !important;
+}
+
+.chat-view__header-avatar-wrap .nakama-avatar-wrap video,
+.chat-view__header-avatar-wrap .nakama-avatar-wrap img {
+  position:   absolute !important;
+  inset:      0 !important;
+  width:      100% !important;
+  height:     100% !important;
+  object-fit: cover !important;
+  display:    block !important;
+}
+
+/* empty state avatar: mismo fix */
+.chat-empty-state__avatar-wrap .nakama-avatar-wrap {
+  width:         72px !important;
+  height:        72px !important;
+  border-radius: 50% !important;
+  overflow:      hidden !important;
+  position:      relative !important;
+}
+
+.chat-empty-state__avatar-wrap .nakama-avatar-wrap video,
+.chat-empty-state__avatar-wrap .nakama-avatar-wrap img {
+  position:   absolute !important;
+  inset:      0 !important;
+  width:      100% !important;
+  height:     100% !important;
+  object-fit: cover !important;
+  display:    block !important;
+}
