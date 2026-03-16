@@ -2,8 +2,6 @@
 
 // ═══════════════════════════════════════════════════════════
 // ChatSidebarComponents.tsx
-// Componentes del sidebar: AgendaSection, AddContactModal,
-// ConvItem, NewChatModal, ThemeModal
 // ═══════════════════════════════════════════════════════════
 
 import { useState, useEffect } from "react";
@@ -36,17 +34,18 @@ export interface UserSuggestion {
   mutualCount?: number;
   source: "nakama" | "contacto" | "tiktok" | "instagram" | "facebook";
   online?: boolean;
+  // El servidor devuelve profileVideo como objeto anidado
+  profileVideo?: { url?: string; thumbnailUrl?: string };
 }
 
-// ── Helper: detecta si una URL es video ─────────────────
+// ── Helper: detecta si URL es video por extensión ────────
 function isVideoUrl(url?: string): boolean {
   if (!url) return false;
   return /\.(mp4|webm|mov)(\?|$)/i.test(url);
 }
 
 // ── Helper: extrae videoSrc de cualquier objeto usuario ──
-// Cubre profileVideo.url, videoUrl, profileVideoUrl,
-// y avatarUrl si la URL misma es un archivo de video
+// profileVideo.url > videoUrl > profileVideoUrl > avatarUrl si es video
 function getVideoSrc(obj: any): string | undefined {
   return (
     obj?.profileVideo?.url ||
@@ -57,7 +56,7 @@ function getVideoSrc(obj: any): string | undefined {
   );
 }
 
-// ── Helper: src de imagen (solo si no es video) ──────────
+// ── Helper: img solo si avatarUrl NO es video ────────────
 function getImgSrc(obj: any): string | undefined {
   const url = obj?.avatarUrl;
   return url && !isVideoUrl(url) ? url : undefined;
@@ -192,7 +191,8 @@ export function AgendaSection({
           <div className="agenda-grid">
             {filtered.map((c, idx) => {
               const src = sourceConfig(c.source);
-              // ✅ ya estaba bien — no se toca
+              const videoSrc = getVideoSrc(c);
+              const imgSrc = getImgSrc(c);
               return (
                 <div key={c._id ?? idx} className="agenda-card" style={{ "--ag-card-accent": src.color } as React.CSSProperties}>
                   {confirmId === c._id && (
@@ -205,7 +205,7 @@ export function AgendaSection({
                     </div>
                   )}
                   <div className="agenda-card__avatar-wrap">
-                    <UserAvatar videoSrc={getVideoSrc(c)} src={getImgSrc(c)} alt={c.username} size={52} />
+                    <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={c.username} size={52} />
                     {c.online && <span className="agenda-card__online-dot" />}
                     <div className="agenda-card__source-badge" style={{ background: src.color }} title={src.label}>
                       <span>{src.abbr}</span>
@@ -291,12 +291,12 @@ export function AddContactModal({
             const src = sourceConfig(u.source);
             const isIn = added.has(u._id);
             const inProgress = adding.has(u._id);
-            // ✅ video del resultado de búsqueda
             const videoSrc = getVideoSrc(u);
+            const imgSrc = getImgSrc(u);
             return (
               <div key={u._id} className={`agenda-modal__result ${isIn ? "agenda-modal__result--added" : ""}`}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <UserAvatar videoSrc={videoSrc} src={getImgSrc(u)} alt={u.username} size={36} />
+                  <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={u.username} size={36} />
                   <div style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: src.color, border: "2px solid #0e0e1c", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <span style={{ fontSize: "0.45rem", fontWeight: 800, color: "#fff" }}>{src.abbr}</span>
                   </div>
@@ -322,19 +322,29 @@ export function AddContactModal({
 
 // ══════════════════════════════════════════════════════════
 // ConvItem
+// El servidor NO devuelve profileVideo en /chats, solo avatarUrl.
+// Por eso guardamos el video en avatarUrl cuando lo conocemos
+// (en handleChatWith de page.tsx), y acá lo detectamos.
 // ══════════════════════════════════════════════════════════
-export function ConvItem({ conv, active, onClick }: { conv: Conversation; active: boolean; onClick: () => void; currentUserId: string }) {
+export function ConvItem({
+  conv, active, onClick,
+}: {
+  conv: Conversation;
+  active: boolean;
+  onClick: () => void;
+  currentUserId: string;
+}) {
+  // avatarUrl puede ser imagen O video (lo guardamos así desde page.tsx)
+  const videoSrc = getVideoSrc(conv);
+  const imgSrc = getImgSrc(conv);
+
   return (
     <div
       className={`chat-conv-item ${active ? "chat-conv-item--active" : ""} ${conv.pinned ? "chat-conv-item--pinned" : ""} ${conv.isBlocked ? "chat-conv-item--blocked" : ""}`}
       role="listitem" onClick={onClick}
     >
       <div className="chat-conv-item__avatar">
-        <UserAvatar
-          videoSrc={conv.avatarUrl && /\.(mp4|webm|mov)(\?|$)/i.test(conv.avatarUrl) ? conv.avatarUrl : undefined}
-          src={conv.avatarUrl && !/\.(mp4|webm|mov)(\?|$)/i.test(conv.avatarUrl) ? conv.avatarUrl : undefined}
-          alt={conv.name} size={40}
-        />
+        <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={conv.name} size={40} />
         {conv.type === "private" && conv.online && <span className="chat-conv-item__online" />}
         {conv.type === "group" && <span className="chat-conv-item__type-badge"><Users size={8} /></span>}
         {conv.type === "community" && <span className="chat-conv-item__type-badge"><Globe size={8} /></span>}
@@ -403,7 +413,17 @@ export function NewChatModal({
       let conv: any = {};
       try { conv = JSON.parse(text); } catch { setCreating(false); return; }
       if (!res.ok) { setCreating(false); return; }
-      onCreated({ ...conv, name: type === "chat" ? (selected[0]?.username ?? conv.name) : conv.name, avatarUrl: type === "chat" ? (selected[0]?.avatarUrl ?? conv.avatarUrl) : conv.avatarUrl, unread: 0, otherId: type === "chat" ? selected[0]?._id : undefined });
+      const firstUser = selected[0];
+      onCreated({
+        ...conv,
+        name: type === "chat" ? (firstUser?.username ?? conv.name) : conv.name,
+        // Guardamos el video en avatarUrl si existe, así ConvItem lo detecta
+        avatarUrl: type === "chat"
+          ? (getVideoSrc(firstUser) || firstUser?.avatarUrl || conv.avatarUrl)
+          : conv.avatarUrl,
+        unread: 0,
+        otherId: type === "chat" ? firstUser?._id : undefined,
+      });
     } catch (err) {
       console.error("Error de red:", err);
     } finally { setCreating(false); }
@@ -447,8 +467,8 @@ export function NewChatModal({
         )}
         <div className="chat-modal__results">
           {displayList.map((u) => {
-            // ✅ video del resultado de búsqueda en NewChatModal
             const videoSrc = getVideoSrc(u);
+            const imgSrc = getImgSrc(u);
             return (
               <div
                 key={u._id}
@@ -459,7 +479,7 @@ export function NewChatModal({
                 }}
               >
                 <div className="chat-modal__result-avatar">
-                  <UserAvatar videoSrc={videoSrc} src={getImgSrc(u)} alt={u.username} size={32} />
+                  <UserAvatar videoSrc={videoSrc} src={imgSrc} alt={u.username} size={32} />
                 </div>
                 <div className="chat-modal__result-info">
                   <span className="chat-modal__result-name">@{u.username}</span>
