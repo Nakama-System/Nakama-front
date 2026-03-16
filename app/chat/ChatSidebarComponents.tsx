@@ -38,14 +38,29 @@ export interface UserSuggestion {
   online?: boolean;
 }
 
-// ── Helper: extrae videoSrc de cualquier objeto usuario ───
+// ── Helper: detecta si una URL es video ─────────────────
+function isVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
+// ── Helper: extrae videoSrc de cualquier objeto usuario ──
+// Cubre profileVideo.url, videoUrl, profileVideoUrl,
+// y avatarUrl si la URL misma es un archivo de video
 function getVideoSrc(obj: any): string | undefined {
   return (
     obj?.profileVideo?.url ||
     obj?.videoUrl ||
     obj?.profileVideoUrl ||
+    (isVideoUrl(obj?.avatarUrl) ? obj.avatarUrl : undefined) ||
     undefined
   );
+}
+
+// ── Helper: src de imagen (solo si no es video) ──────────
+function getImgSrc(obj: any): string | undefined {
+  const url = obj?.avatarUrl;
+  return url && !isVideoUrl(url) ? url : undefined;
 }
 
 // ── Constantes ────────────────────────────────────────────
@@ -190,7 +205,7 @@ export function AgendaSection({
                     </div>
                   )}
                   <div className="agenda-card__avatar-wrap">
-                    <UserAvatar videoSrc={getVideoSrc(c)} src={!getVideoSrc(c) ? c.avatarUrl : undefined} alt={c.username} size={52} />
+                    <UserAvatar videoSrc={getVideoSrc(c)} src={getImgSrc(c)} alt={c.username} size={52} />
                     {c.online && <span className="agenda-card__online-dot" />}
                     <div className="agenda-card__source-badge" style={{ background: src.color }} title={src.label}>
                       <span>{src.abbr}</span>
@@ -281,7 +296,7 @@ export function AddContactModal({
             return (
               <div key={u._id} className={`agenda-modal__result ${isIn ? "agenda-modal__result--added" : ""}`}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <UserAvatar videoSrc={videoSrc} src={!videoSrc ? u.avatarUrl : undefined} alt={u.username} size={36} />
+                  <UserAvatar videoSrc={videoSrc} src={getImgSrc(u)} alt={u.username} size={36} />
                   <div style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: src.color, border: "2px solid #0e0e1c", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <span style={{ fontSize: "0.45rem", fontWeight: 800, color: "#fff" }}>{src.abbr}</span>
                   </div>
@@ -444,7 +459,7 @@ export function NewChatModal({
                 }}
               >
                 <div className="chat-modal__result-avatar">
-                  <UserAvatar videoSrc={videoSrc} src={!videoSrc ? u.avatarUrl : undefined} alt={u.username} size={32} />
+                  <UserAvatar videoSrc={videoSrc} src={getImgSrc(u)} alt={u.username} size={32} />
                 </div>
                 <div className="chat-modal__result-info">
                   <span className="chat-modal__result-name">@{u.username}</span>
