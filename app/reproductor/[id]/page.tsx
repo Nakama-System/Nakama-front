@@ -117,9 +117,9 @@ function StarRating({ value, onVote, voted, size = 16 }: StarRatingProps) {
    ShareModal
    ═══════════════════════════════════════════════════════ */
 interface ShareModalProps {
-  movie:    MovieItem;
-  pal:      { accent: string; bg: string };
-  onClose:  () => void;
+  movie:   MovieItem;
+  pal:     { accent: string; bg: string };
+  onClose: () => void;
 }
 
 function ShareModal({ movie, pal, onClose }: ShareModalProps) {
@@ -158,11 +158,15 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
         padding: 16,
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        animation: "fadeIn .18s ease",
+        animation: "sm-fade .18s ease",
       }}
       onClick={onClose}
     >
-      <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}} @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}`}</style>
+      <style>{`
+        @keyframes sm-fade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes sm-up   { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+        @keyframes sm-dot  { 0%,100%{ opacity:1; transform:scale(1) } 50%{ opacity:.4; transform:scale(1.4) } }
+      `}</style>
 
       <div
         style={{
@@ -171,41 +175,31 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
           border: "1px solid rgba(255,255,255,.09)",
           borderRadius: 20, overflow: "hidden",
           position: "relative",
-          animation: "slideUp .22s ease",
+          animation: "sm-up .22s ease",
           boxShadow: `0 0 60px ${pal.accent}18, 0 24px 48px rgba(0,0,0,.6)`,
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Thumbnail header */}
+        {/* Thumbnail */}
         <div style={{ position: "relative", width: "100%", paddingTop: "50%", overflow: "hidden" }}>
           <img
             src={movie.thumbnail}
             alt={movie.title}
-            style={{
-              position: "absolute", inset: 0,
-              width: "100%", height: "100%",
-              objectFit: "cover",
-            }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
           <div style={{
             position: "absolute", inset: 0,
             background: "linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(12,12,20,1) 100%)",
           }} />
-
-          {/* Category badge */}
           <div style={{
             position: "absolute", top: 10, left: 10,
-            background: pal.bg,
-            border: `1px solid ${pal.accent}55`,
-            color: pal.accent,
-            fontSize: 10, fontWeight: 700,
+            background: pal.bg, border: `1px solid ${pal.accent}55`,
+            color: pal.accent, fontSize: 10, fontWeight: 700,
             padding: "3px 8px", borderRadius: 6,
             textTransform: "uppercase", letterSpacing: ".5px",
           }}>
             {movie.category}
           </div>
-
-          {/* Close */}
           <button
             type="button"
             onClick={onClose}
@@ -216,7 +210,6 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
               borderRadius: "50%", width: 30, height: 30,
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "rgba(255,255,255,.8)", cursor: "pointer",
-              transition: "background .15s",
             }}
           >
             <X size={14} />
@@ -230,7 +223,7 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
             <div style={{
               width: 7, height: 7, borderRadius: "50%",
               background: pal.accent,
-              animation: "dotPulse 1.6s infinite",
+              animation: "sm-dot 1.6s infinite",
             }} />
             <span style={{
               fontSize: 10, fontWeight: 700,
@@ -244,31 +237,25 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
           <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", lineHeight: 1.25, marginBottom: 5 }}>
             {movie.title}
           </div>
-
-          <div style={{
-            fontSize: 12, color: "rgba(255,255,255,.38)",
-            lineHeight: 1.55, marginBottom: 16,
-          }}>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,.38)", lineHeight: 1.55, marginBottom: 16 }}>
             {movie.description.slice(0, 110)}{movie.description.length > 110 ? "…" : ""}
           </div>
 
           {loading ? (
             <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
-              <div className="rp-buffering__ring" style={{ position: "static", width: 28, height: 28, borderWidth: 2 }} />
+              <div className="rp-buffering__ring" />
             </div>
           ) : meta ? (
             <>
-              {/* URL row */}
+              {/* URL copiable */}
               <div style={{
                 display: "flex", alignItems: "center", gap: 8,
                 background: "rgba(255,255,255,.04)",
                 border: "1px solid rgba(255,255,255,.09)",
-                borderRadius: 9, padding: "8px 10px",
-                marginBottom: 13,
+                borderRadius: 9, padding: "8px 10px", marginBottom: 13,
               }}>
                 <span style={{
-                  flex: 1, fontSize: 11,
-                  color: "rgba(255,255,255,.38)",
+                  flex: 1, fontSize: 11, color: "rgba(255,255,255,.38)",
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {meta.url}
@@ -284,17 +271,14 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
                     color: copied ? pal.accent : "rgba(255,255,255,.65)",
                     borderRadius: 6, padding: "4px 10px",
                     fontSize: 11, fontWeight: 600, cursor: "pointer",
-                    transition: "all .2s",
-                    whiteSpace: "nowrap",
+                    transition: "all .2s", whiteSpace: "nowrap",
                   }}
                 >
-                  {copied
-                    ? <><Check size={10} /> Copiado</>
-                    : <><Copy size={10} /> Copiar</>}
+                  {copied ? <><Check size={10} /> Copiado</> : <><Copy size={10} /> Copiar</>}
                 </button>
               </div>
 
-              {/* Social nets */}
+              {/* Redes sociales */}
               <div style={{ display: "flex", gap: 8 }}>
                 {nets.map((n) => (
                   <a
@@ -317,11 +301,11 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLAnchorElement).style.background = `${n.color}20`;
-                      (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
+                      (e.currentTarget as HTMLAnchorElement).style.transform  = "translateY(-1px)";
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLAnchorElement).style.background = `${n.color}10`;
-                      (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+                      (e.currentTarget as HTMLAnchorElement).style.transform  = "translateY(0)";
                     }}
                   >
                     <n.Icon size={17} />
@@ -331,22 +315,18 @@ function ShareModal({ movie, pal, onClose }: ShareModalProps) {
               </div>
             </>
           ) : (
-            <div style={{
-              textAlign: "center", padding: "12px 0",
-              fontSize: 12, color: "rgba(255,255,255,.28)",
-            }}>
+            <div style={{ textAlign: "center", padding: "12px 0", fontSize: 12, color: "rgba(255,255,255,.28)" }}>
               Error al cargar opciones de compartir
             </div>
           )}
 
-          {/* Cancel */}
+          {/* Cerrar */}
           <button
             type="button"
             onClick={onClose}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-              width: "100%", marginTop: 13,
-              padding: "9px",
+              width: "100%", marginTop: 13, padding: "9px",
               background: "rgba(255,255,255,.04)",
               border: "1px solid rgba(255,255,255,.08)",
               borderRadius: 9, color: "rgba(255,255,255,.4)",
@@ -482,19 +462,9 @@ function MiniPreview({ movie, visible, x, y }: MiniPreviewProps) {
   return (
     <div className={`rp-mini-preview${visible ? " visible" : ""}`} style={{ left, top }}>
       {type === "direct" ? (
-        <video
-          ref={vidRef}
-          className="rp-mini-preview__video"
-          muted playsInline preload="none"
-          poster={movie.thumbnail}
-        />
+        <video ref={vidRef} className="rp-mini-preview__video" muted playsInline preload="none" poster={movie.thumbnail} />
       ) : (
-        <img
-          src={movie.thumbnail}
-          alt={movie.title}
-          className="rp-mini-preview__video"
-          style={{ objectFit: "cover" }}
-        />
+        <img src={movie.thumbnail} alt={movie.title} className="rp-mini-preview__video" style={{ objectFit: "cover" }} />
       )}
       <div className="rp-mini-preview__info">
         <div className="rp-mini-preview__title">{movie.title}</div>
@@ -528,9 +498,7 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
     if (vtype === "direct") {
       const v = previewRef.current;
       if (v && movie.videoUrl) {
-        v.src = movie.videoUrl;
-        v.muted = true;
-        v.currentTime = 0;
+        v.src = movie.videoUrl; v.muted = true; v.currentTime = 0;
         hoverTimer.current = setTimeout(() => { void v.play().catch(() => {}); }, 400);
       }
     }
@@ -553,37 +521,24 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      role="button"
-      tabIndex={0}
+      role="button" tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onSelect(movie); }}
       aria-label={`Ver ${movie.title}`}
     >
       <div className="rp-related-card__thumb">
         {isCurrent && <span className="rp-now-playing-badge">Reproduciendo</span>}
         <img
-          src={movie.thumbnail}
-          alt={movie.title}
-          className="rp-related-card__img"
-          loading="lazy"
-          onError={(e: SyntheticEvent<HTMLImageElement>) => {
-            e.currentTarget.style.display = "none";
-          }}
+          src={movie.thumbnail} alt={movie.title}
+          className="rp-related-card__img" loading="lazy"
+          onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = "none"; }}
         />
         {vtype === "direct" && (
-          <video
-            ref={previewRef}
-            className="rp-related-card__preview"
-            muted playsInline preload="none"
-            poster={movie.thumbnail}
-          />
+          <video ref={previewRef} className="rp-related-card__preview" muted playsInline preload="none" poster={movie.thumbnail} />
         )}
-        <div className="rp-related-card__play-overlay">
-          <Play size={18} color="#fff" fill="#fff" />
-        </div>
+        <div className="rp-related-card__play-overlay"><Play size={18} color="#fff" fill="#fff" /></div>
         <span style={{
           position: "absolute", bottom: 4, left: 4,
-          fontSize: 9, fontWeight: 700,
-          padding: "2px 5px", borderRadius: 3,
+          fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 3,
           background: vtype === "youtube" ? "#ff0000cc" : vtype === "vimeo" ? "#1ab7eacc" : "rgba(0,0,0,.6)",
           color: "#fff", backdropFilter: "blur(4px)",
         }}>
@@ -652,8 +607,7 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
   }, []);
 
   const flashHint = (msg: string) => {
-    setKbdHint(msg);
-    setKbdVisible(true);
+    setKbdHint(msg); setKbdVisible(true);
     if (kbdTimer.current) clearTimeout(kbdTimer.current);
     kbdTimer.current = setTimeout(() => setKbdVisible(false), 1000);
   };
@@ -673,24 +627,18 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
     resetCtrlTimer();
   }, [resetCtrlTimer]);
 
-  const toggleMute = () => {
-    const v = videoRef.current;
-    if (v) v.muted = !v.muted;
-  };
+  const toggleMute  = () => { const v = videoRef.current; if (v) v.muted = !v.muted; };
 
-  const setVolCtrl = (val: number) => {
+  const setVolCtrl  = (val: number) => {
     const v = videoRef.current;
     if (!v) return;
-    v.volume = val;
-    v.muted  = val === 0;
+    v.volume = val; v.muted = val === 0;
   };
 
   const setSpeedCtrl = (s: Speed) => {
     const v = videoRef.current;
     if (v) v.playbackRate = s;
-    setSpeed(s);
-    setSpeedOpen(false);
-    flashHint(`${s}x`);
+    setSpeed(s); setSpeedOpen(false); flashHint(`${s}x`);
   };
 
   const toggleFullscreen = async () => {
@@ -742,7 +690,7 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
     if ((e.target as HTMLElement).tagName === "INPUT") return;
     switch (e.key) {
       case " ": case "k": e.preventDefault(); togglePlay(); break;
-      case "ArrowRight":  e.preventDefault(); seek(10); break;
+      case "ArrowRight":  e.preventDefault(); seek(10);  break;
       case "ArrowLeft":   e.preventDefault(); seek(-10); break;
       case "ArrowUp":
         e.preventDefault();
@@ -804,7 +752,6 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
         onError={onError}
       />
 
-      {/* Idle overlay */}
       <div
         className={`rp-idle-overlay${playing ? " hidden" : ""}`}
         onClick={togglePlay}
@@ -816,17 +763,14 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
         </div>
       </div>
 
-      {/* Buffering */}
       <div className={`rp-buffering${buffering ? " visible" : ""}`}>
         <div className="rp-buffering__ring" />
       </div>
 
-      {/* Keyboard hint */}
       <div className={`rp-kbd-hint${kbdVisible && kbdHint ? " visible" : ""}`}>
         {kbdHint}
       </div>
 
-      {/* Controls */}
       <div className="rp-controls">
         <div
           ref={progressRef}
@@ -849,8 +793,8 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
             if (videoRef.current)
               videoRef.current.currentTime = getProgressFraction(e) * duration;
           }}
-          onMouseUp={() => { isDragging.current = false; }}
-          onMouseLeave={() => { isDragging.current = false; }}
+          onMouseUp={()    => { isDragging.current = false; }}
+          onMouseLeave={()  => { isDragging.current = false; }}
         >
           <div className="rp-progress__track">
             <div className="rp-progress__buffered" style={{ width: `${bufferedPct}%` }} />
@@ -902,8 +846,7 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
             <div className="rp-speed-menu">
               {SPEEDS.map((s) => (
                 <button
-                  key={s}
-                  type="button"
+                  key={s} type="button"
                   className={`rp-speed-opt${speed === s ? " active" : ""}`}
                   onClick={() => setSpeedCtrl(s)}
                 >
@@ -913,30 +856,15 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`rp-ctrl-btn${loop ? " active" : ""}`}
-            onClick={toggleLoop}
-            title="Repetir (r)"
-          >
+          <button type="button" className={`rp-ctrl-btn${loop ? " active" : ""}`} onClick={toggleLoop} title="Repetir (r)">
             <Repeat size={16} />
           </button>
 
-          <button
-            type="button"
-            className={`rp-ctrl-btn${pip ? " active" : ""}`}
-            onClick={() => { void togglePip(); }}
-            title="Picture-in-Picture (p)"
-          >
+          <button type="button" className={`rp-ctrl-btn${pip ? " active" : ""}`} onClick={() => { void togglePip(); }} title="Picture-in-Picture (p)">
             <PictureInPicture2 size={16} />
           </button>
 
-          <button
-            type="button"
-            className="rp-ctrl-btn"
-            onClick={() => { void toggleFullscreen(); }}
-            title="Pantalla completa (f)"
-          >
+          <button type="button" className="rp-ctrl-btn" onClick={() => { void toggleFullscreen(); }} title="Pantalla completa (f)">
             {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
           </button>
         </div>
@@ -964,6 +892,7 @@ export default function ReproductorPage() {
   const [votes,  setVotes]  = useState(0);
   const [voted,  setVoted]  = useState(false);
 
+  /* ── share state ────────────────────────────────────── */
   const [shareOpen, setShareOpen] = useState(false);
 
   const [previewMovie, setPreviewMovie] = useState<MovieItem | null>(null);
@@ -1033,20 +962,14 @@ export default function ReproductorPage() {
     });
     const data = await res.json() as { ok: boolean; downloadUrl: string; filename?: string };
     if (data.ok) {
-      const a    = document.createElement("a");
-      a.href     = data.downloadUrl;
-      a.download = data.filename ?? movie.title;
-      a.click();
+      const a = document.createElement("a");
+      a.href = data.downloadUrl; a.download = data.filename ?? movie.title; a.click();
     }
   };
 
-  const handleEnded = () => {
-    if (related.length > 0) router.push(`/reproductor/${related[0].id}`);
-  };
-
+  const handleEnded         = () => { if (related.length > 0) router.push(`/reproductor/${related[0].id}`); };
   const handleSelectRelated = (m: MovieItem) => router.push(`/reproductor/${m.id}`);
-
-  const handleHover = (m: MovieItem | null, x: number, y: number) => {
+  const handleHover         = (m: MovieItem | null, x: number, y: number) => {
     if (m) { setPreviewMovie(m); setPreviewPos({ x, y }); setPreviewVis(true); }
     else   { setPreviewVis(false); }
   };
@@ -1095,11 +1018,7 @@ export default function ReproductorPage() {
             <div className="rp-topbar__crumb">
               <a href="/peliculas" className="rp-topbar__crumb-item">Volver</a>
               <ChevronRight size={11} className="rp-topbar__crumb-sep" />
-              <span
-                className="rp-topbar__crumb-item"
-                onClick={() => router.back()}
-                style={{ cursor: "pointer" }}
-              >
+              <span className="rp-topbar__crumb-item" onClick={() => router.back()} style={{ cursor: "pointer" }}>
                 {movie.category}
               </span>
               <ChevronRight size={11} className="rp-topbar__crumb-sep" />
@@ -1109,18 +1028,9 @@ export default function ReproductorPage() {
 
           {/* ─── Universal Player ─── */}
           {vtype === "direct" ? (
-            <DirectVideoPlayer
-              movie={movie}
-              onEnded={handleEnded}
-              onError={() => setVideoError(true)}
-            />
+            <DirectVideoPlayer movie={movie} onEnded={handleEnded} onError={() => setVideoError(true)} />
           ) : (
-            <EmbedPlayer
-              url={movie.videoUrl}
-              type={vtype}
-              thumbnail={movie.thumbnail}
-              title={movie.title}
-            />
+            <EmbedPlayer url={movie.videoUrl} type={vtype} thumbnail={movie.thumbnail} title={movie.title} />
           )}
 
           {videoError && vtype === "direct" && (
@@ -1136,15 +1046,11 @@ export default function ReproductorPage() {
               <h1 className="rp-info__title">{movie.title}</h1>
               <div className="rp-info__actions">
                 {movie.canDownload && (
-                  <button
-                    type="button"
-                    className="rp-info__btn rp-info__btn--primary"
-                    onClick={() => { void handleDownload(); }}
-                  >
+                  <button type="button" className="rp-info__btn rp-info__btn--primary" onClick={() => { void handleDownload(); }}>
                     <Download size={13} /> Descargar
                   </button>
                 )}
-                {/* ── SHARE BUTTON ── */}
+                {/* ── Botón compartir → abre ShareModal ── */}
                 <button
                   type="button"
                   className="rp-info__btn"
@@ -1157,10 +1063,7 @@ export default function ReproductorPage() {
             </div>
 
             <div className="rp-info__meta">
-              <span
-                className="rp-info__chip"
-                style={{ color: pal.accent, borderColor: pal.accent + "55", background: pal.bg }}
-              >
+              <span className="rp-info__chip" style={{ color: pal.accent, borderColor: pal.accent + "55", background: pal.bg }}>
                 {movie.category}
               </span>
               <span className="rp-info__sep" />
@@ -1169,8 +1072,7 @@ export default function ReproductorPage() {
               <span style={{ fontSize: 12, color: "var(--rp-text-muted)" }}>{movie.duration}</span>
               <span className="rp-info__sep" />
               <span style={{
-                fontSize: 11, fontWeight: 700,
-                padding: "2px 7px", borderRadius: 4,
+                fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
                 background: vtype === "youtube" ? "#ff000022" : vtype === "vimeo" ? "#1ab7ea22" : "rgba(255,255,255,.08)",
                 color:      vtype === "youtube" ? "#ff4444"   : vtype === "vimeo" ? "#1ab7ea"   : "var(--rp-text-muted)",
                 border: `1px solid ${vtype === "youtube" ? "#ff444444" : vtype === "vimeo" ? "#1ab7ea44" : "rgba(255,255,255,.1)"}`,
@@ -1193,15 +1095,9 @@ export default function ReproductorPage() {
             <StarRating value={rating} onVote={(n) => { void handleVote(n); }} voted={voted} size={18} />
             <span className="rp-rating-score">{rating.toFixed(1)}</span>
             <span className="rp-rating-count">({votes.toLocaleString("es")} votos)</span>
-            {voted && (
-              <span className="rp-rating-voted">
-                <Check size={11} /> Votado
-              </span>
-            )}
+            {voted && <span className="rp-rating-voted"><Check size={11} /> Votado</span>}
             {!isAuthenticated && (
-              <span style={{ fontSize: 11, color: "var(--rp-text-dim)" }}>
-                Iniciá sesión para votar
-              </span>
+              <span style={{ fontSize: 11, color: "var(--rp-text-dim)" }}>Iniciá sesión para votar</span>
             )}
           </div>
 
@@ -1215,30 +1111,15 @@ export default function ReproductorPage() {
           </div>
 
           <div className="rp-sidebar__list">
-            <RelatedCard
-              key={movie.id}
-              movie={movie}
-              isCurrent={true}
-              onSelect={() => {}}
-              onHover={handleHover}
-            />
+            <RelatedCard key={movie.id} movie={movie} isCurrent={true} onSelect={() => {}} onHover={handleHover} />
 
             {related.length === 0 ? (
-              <div style={{
-                padding: "32px 20px", textAlign: "center",
-                color: "var(--rp-text-dim)", fontSize: 12,
-              }}>
+              <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--rp-text-dim)", fontSize: 12 }}>
                 Sin contenido relacionado
               </div>
             ) : (
               related.map((m) => (
-                <RelatedCard
-                  key={m.id}
-                  movie={m}
-                  isCurrent={false}
-                  onSelect={handleSelectRelated}
-                  onHover={handleHover}
-                />
+                <RelatedCard key={m.id} movie={m} isCurrent={false} onSelect={handleSelectRelated} onHover={handleHover} />
               ))
             )}
           </div>
@@ -1248,13 +1129,9 @@ export default function ReproductorPage() {
 
       <MiniPreview movie={previewMovie} visible={previewVis} x={previewPos.x} y={previewPos.y} />
 
-      {/* ── SHARE MODAL ── */}
-      {shareOpen && (
-        <ShareModal
-          movie={movie}
-          pal={pal}
-          onClose={() => setShareOpen(false)}
-        />
+      {/* ── Share Modal ── */}
+      {shareOpen && movie && (
+        <ShareModal movie={movie} pal={pal} onClose={() => setShareOpen(false)} />
       )}
     </div>
   );
