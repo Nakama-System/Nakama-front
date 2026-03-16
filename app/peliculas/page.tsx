@@ -22,7 +22,7 @@ import {
 /* ══════════════════════════════════════════════════
    CONFIG
    ══════════════════════════════════════════════════ */
-const API_BASE  = process.env.NEXT_PUBLIC_API_URL || "https://nakama-vercel-backend.vercel.app";
+const API_BASE  = "https://nakama-vercel-backend.vercel.app";
 const PAGE_SIZE = 9;
 const NEXT_PUBLIC_SITE_URL = "https://nakama-front.vercel.app"
 
