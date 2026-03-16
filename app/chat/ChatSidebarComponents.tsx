@@ -38,6 +38,16 @@ export interface UserSuggestion {
   online?: boolean;
 }
 
+// ── Helper: extrae videoSrc de cualquier objeto usuario ───
+function getVideoSrc(obj: any): string | undefined {
+  return (
+    obj?.profileVideo?.url ||
+    obj?.videoUrl ||
+    obj?.profileVideoUrl ||
+    undefined
+  );
+}
+
 // ── Constantes ────────────────────────────────────────────
 export const SOURCE_COLORS: Record<UserSuggestion["source"], string> = {
   nakama: "#e63946",
@@ -167,6 +177,7 @@ export function AgendaSection({
           <div className="agenda-grid">
             {filtered.map((c, idx) => {
               const src = sourceConfig(c.source);
+              // ✅ ya estaba bien — no se toca
               return (
                 <div key={c._id ?? idx} className="agenda-card" style={{ "--ag-card-accent": src.color } as React.CSSProperties}>
                   {confirmId === c._id && (
@@ -179,7 +190,7 @@ export function AgendaSection({
                     </div>
                   )}
                   <div className="agenda-card__avatar-wrap">
-                    <UserAvatar videoSrc={(c as any).profileVideo?.url ?? undefined} src={c.avatarUrl} alt={c.username} size={52} />
+                    <UserAvatar videoSrc={getVideoSrc(c)} src={!getVideoSrc(c) ? c.avatarUrl : undefined} alt={c.username} size={52} />
                     {c.online && <span className="agenda-card__online-dot" />}
                     <div className="agenda-card__source-badge" style={{ background: src.color }} title={src.label}>
                       <span>{src.abbr}</span>
@@ -265,10 +276,12 @@ export function AddContactModal({
             const src = sourceConfig(u.source);
             const isIn = added.has(u._id);
             const inProgress = adding.has(u._id);
+            // ✅ video del resultado de búsqueda
+            const videoSrc = getVideoSrc(u);
             return (
               <div key={u._id} className={`agenda-modal__result ${isIn ? "agenda-modal__result--added" : ""}`}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <UserAvatar src={u.avatarUrl} alt={u.username} size={36} />
+                  <UserAvatar videoSrc={videoSrc} src={!videoSrc ? u.avatarUrl : undefined} alt={u.username} size={36} />
                   <div style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, borderRadius: "50%", background: src.color, border: "2px solid #0e0e1c", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <span style={{ fontSize: "0.45rem", fontWeight: 800, color: "#fff" }}>{src.abbr}</span>
                   </div>
@@ -418,23 +431,29 @@ export function NewChatModal({
           </div>
         )}
         <div className="chat-modal__results">
-          {displayList.map((u) => (
-            <div
-              key={u._id}
-              className={`chat-modal__result ${selected.find((s) => s._id === u._id) ? "chat-modal__result--selected" : ""}`}
-              onClick={() => {
-                if (type === "chat") setSelected([u]);
-                else setSelected((prev) => prev.find((x) => x._id === u._id) ? prev.filter((x) => x._id !== u._id) : [...prev, u]);
-              }}
-            >
-              <div className="chat-modal__result-avatar"><UserAvatar src={u.avatarUrl} alt={u.username} size={32} /></div>
-              <div className="chat-modal__result-info">
-                <span className="chat-modal__result-name">@{u.username}</span>
-                <span className={`chat-modal__result-source chat-modal__result-source--${u.source}`}>{sourceConfig(u.source).label}</span>
+          {displayList.map((u) => {
+            // ✅ video del resultado de búsqueda en NewChatModal
+            const videoSrc = getVideoSrc(u);
+            return (
+              <div
+                key={u._id}
+                className={`chat-modal__result ${selected.find((s) => s._id === u._id) ? "chat-modal__result--selected" : ""}`}
+                onClick={() => {
+                  if (type === "chat") setSelected([u]);
+                  else setSelected((prev) => prev.find((x) => x._id === u._id) ? prev.filter((x) => x._id !== u._id) : [...prev, u]);
+                }}
+              >
+                <div className="chat-modal__result-avatar">
+                  <UserAvatar videoSrc={videoSrc} src={!videoSrc ? u.avatarUrl : undefined} alt={u.username} size={32} />
+                </div>
+                <div className="chat-modal__result-info">
+                  <span className="chat-modal__result-name">@{u.username}</span>
+                  <span className={`chat-modal__result-source chat-modal__result-source--${u.source}`}>{sourceConfig(u.source).label}</span>
+                </div>
+                {selected.find((s) => s._id === u._id) && <Check size={16} className="chat-modal__check" />}
               </div>
-              {selected.find((s) => s._id === u._id) && <Check size={16} className="chat-modal__check" />}
-            </div>
-          ))}
+            );
+          })}
           {searchQ.length >= 2 && displayList.length === 0 && <div className="chat-modal__no-results">No se encontraron usuarios</div>}
         </div>
         <button
