@@ -18,25 +18,16 @@ import {
   Gauge, PictureInPicture2, Download, Share2,
   Star, Check, Eye, AlertCircle, Film,
   ArrowLeft, ChevronRight, House, Repeat,
+  Copy, X, MessageCircle, Send, Twitter, Facebook,
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
-import type { MovieItem } from "../../types/movie";
+import type { MovieItem, ShareMeta } from "../../types/movie";
 import "../../styles/reproductor.css";
 
 /* ── Config ───────────────────────────────────────────── */
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://nakama-vercel-backend.vercel.app";
 const SPEEDS   = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 type Speed     = typeof SPEEDS[number];
-
-/* ── Share base URL ───────────────────────────────────── */
-function getSiteBase(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (typeof window !== "undefined" && window.location.origin !== "http://localhost:3000"
-      ? window.location.origin
-      : "http://localhost:3000")
-  );
-}
 
 /* ── Video source detection ───────────────────────────── */
 type VideoSourceType = "youtube" | "vimeo" | "direct";
@@ -123,6 +114,255 @@ function StarRating({ value, onVote, voted, size = 16 }: StarRatingProps) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   ShareModal
+   ═══════════════════════════════════════════════════════ */
+interface ShareModalProps {
+  movie:    MovieItem;
+  pal:      { accent: string; bg: string };
+  onClose:  () => void;
+}
+
+function ShareModal({ movie, pal, onClose }: ShareModalProps) {
+  const [meta,    setMeta]    = useState<ShareMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied,  setCopied]  = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/moviesup/${movie.id}/share`)
+      .then((r) => r.json() as Promise<ShareMeta>)
+      .then(setMeta)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [movie.id]);
+
+  const handleCopy = () => {
+    if (!meta) return;
+    navigator.clipboard.writeText(meta.url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
+
+  const nets = meta ? [
+    { label: "WhatsApp", href: meta.whatsapp, Icon: MessageCircle, color: "#25d366" },
+    { label: "Telegram", href: meta.telegram, Icon: Send,          color: "#2aabee" },
+    { label: "Twitter",  href: meta.twitter,  Icon: Twitter,       color: "#74b9ff" },
+    { label: "Facebook", href: meta.facebook, Icon: Facebook,      color: "#1877f2" },
+  ] : [];
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(0,0,0,.78)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        animation: "fadeIn .18s ease",
+      }}
+      onClick={onClose}
+    >
+      <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}} @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}`}</style>
+
+      <div
+        style={{
+          width: "100%", maxWidth: 400,
+          background: "rgba(12,12,20,.98)",
+          border: "1px solid rgba(255,255,255,.09)",
+          borderRadius: 20, overflow: "hidden",
+          position: "relative",
+          animation: "slideUp .22s ease",
+          boxShadow: `0 0 60px ${pal.accent}18, 0 24px 48px rgba(0,0,0,.6)`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Thumbnail header */}
+        <div style={{ position: "relative", width: "100%", paddingTop: "50%", overflow: "hidden" }}>
+          <img
+            src={movie.thumbnail}
+            alt={movie.title}
+            style={{
+              position: "absolute", inset: 0,
+              width: "100%", height: "100%",
+              objectFit: "cover",
+            }}
+          />
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(12,12,20,1) 100%)",
+          }} />
+
+          {/* Category badge */}
+          <div style={{
+            position: "absolute", top: 10, left: 10,
+            background: pal.bg,
+            border: `1px solid ${pal.accent}55`,
+            color: pal.accent,
+            fontSize: 10, fontWeight: 700,
+            padding: "3px 8px", borderRadius: 6,
+            textTransform: "uppercase", letterSpacing: ".5px",
+          }}>
+            {movie.category}
+          </div>
+
+          {/* Close */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              position: "absolute", top: 8, right: 8,
+              background: "rgba(0,0,0,.55)",
+              border: "1px solid rgba(255,255,255,.12)",
+              borderRadius: "50%", width: 30, height: 30,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "rgba(255,255,255,.8)", cursor: "pointer",
+              transition: "background .15s",
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "16px 18px 22px" }}>
+          {/* Logo row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 11 }}>
+            <div style={{
+              width: 7, height: 7, borderRadius: "50%",
+              background: pal.accent,
+              animation: "dotPulse 1.6s infinite",
+            }} />
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              color: "rgba(255,255,255,.28)",
+              letterSpacing: "2px", textTransform: "uppercase",
+            }}>
+              Nakama Universe
+            </span>
+          </div>
+
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", lineHeight: 1.25, marginBottom: 5 }}>
+            {movie.title}
+          </div>
+
+          <div style={{
+            fontSize: 12, color: "rgba(255,255,255,.38)",
+            lineHeight: 1.55, marginBottom: 16,
+          }}>
+            {movie.description.slice(0, 110)}{movie.description.length > 110 ? "…" : ""}
+          </div>
+
+          {loading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
+              <div className="rp-buffering__ring" style={{ position: "static", width: 28, height: 28, borderWidth: 2 }} />
+            </div>
+          ) : meta ? (
+            <>
+              {/* URL row */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: "rgba(255,255,255,.04)",
+                border: "1px solid rgba(255,255,255,.09)",
+                borderRadius: 9, padding: "8px 10px",
+                marginBottom: 13,
+              }}>
+                <span style={{
+                  flex: 1, fontSize: 11,
+                  color: "rgba(255,255,255,.38)",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {meta.url}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  style={{
+                    flexShrink: 0,
+                    display: "flex", alignItems: "center", gap: 4,
+                    background: copied ? `${pal.accent}20` : "rgba(255,255,255,.07)",
+                    border: `1px solid ${copied ? pal.accent + "55" : "rgba(255,255,255,.13)"}`,
+                    color: copied ? pal.accent : "rgba(255,255,255,.65)",
+                    borderRadius: 6, padding: "4px 10px",
+                    fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    transition: "all .2s",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {copied
+                    ? <><Check size={10} /> Copiado</>
+                    : <><Copy size={10} /> Copiar</>}
+                </button>
+              </div>
+
+              {/* Social nets */}
+              <div style={{ display: "flex", gap: 8 }}>
+                {nets.map((n) => (
+                  <a
+                    key={n.label}
+                    href={n.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      flex: 1,
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", gap: 5,
+                      padding: "10px 4px",
+                      background: `${n.color}10`,
+                      border: `1px solid ${n.color}30`,
+                      borderRadius: 10, color: n.color,
+                      textDecoration: "none",
+                      fontSize: 10, fontWeight: 700,
+                      letterSpacing: ".3px",
+                      transition: "background .15s, transform .1s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = `${n.color}20`;
+                      (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = `${n.color}10`;
+                      (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+                    }}
+                  >
+                    <n.Icon size={17} />
+                    <span>{n.label}</span>
+                  </a>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{
+              textAlign: "center", padding: "12px 0",
+              fontSize: 12, color: "rgba(255,255,255,.28)",
+            }}>
+              Error al cargar opciones de compartir
+            </div>
+          )}
+
+          {/* Cancel */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              width: "100%", marginTop: 13,
+              padding: "9px",
+              background: "rgba(255,255,255,.04)",
+              border: "1px solid rgba(255,255,255,.08)",
+              borderRadius: 9, color: "rgba(255,255,255,.4)",
+              fontSize: 12, cursor: "pointer",
+              transition: "background .15s",
+            }}
+          >
+            <X size={11} /> Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    EmbedPlayer — YouTube o Vimeo
    ═══════════════════════════════════════════════════════ */
 interface EmbedPlayerProps {
@@ -158,37 +398,24 @@ function EmbedPlayer({ url, type, thumbnail, title }: EmbedPlayerProps) {
           />
         )}
         <div style={{
-          position:       "absolute",
-          inset:          0,
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-          background:     "rgba(0,0,0,.35)",
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,.35)",
         }}>
           <div style={{
-            width:          64,
-            height:         64,
-            borderRadius:   "50%",
-            background:     "rgba(0,0,0,.7)",
-            display:        "flex",
-            alignItems:     "center",
-            justifyContent: "center",
+            width: 64, height: 64, borderRadius: "50%",
+            background: "rgba(0,0,0,.7)",
+            display: "flex", alignItems: "center", justifyContent: "center",
             backdropFilter: "blur(4px)",
           }}>
             <Play size={28} fill="#fff" color="#fff" />
           </div>
         </div>
         <div style={{
-          position:       "absolute",
-          top:            12,
-          right:          12,
-          background:     type === "youtube" ? "#ff0000cc" : "#1ab7eacc",
-          color:          "#fff",
-          fontSize:       11,
-          fontWeight:     700,
-          padding:        "3px 8px",
-          borderRadius:   4,
-          backdropFilter: "blur(4px)",
+          position: "absolute", top: 12, right: 12,
+          background: type === "youtube" ? "#ff0000cc" : "#1ab7eacc",
+          color: "#fff", fontSize: 11, fontWeight: 700,
+          padding: "3px 8px", borderRadius: 4, backdropFilter: "blur(4px)",
         }}>
           {type === "youtube" ? "▶ YouTube" : "🎬 Vimeo"}
         </div>
@@ -201,8 +428,7 @@ function EmbedPlayer({ url, type, thumbnail, title }: EmbedPlayerProps) {
       <iframe
         src={embedSrc}
         title={title}
-        width="100%"
-        height="100%"
+        width="100%" height="100%"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         style={{ border: "none", display: "block" }}
@@ -302,12 +528,10 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
     if (vtype === "direct") {
       const v = previewRef.current;
       if (v && movie.videoUrl) {
-        v.src         = movie.videoUrl;
-        v.muted       = true;
+        v.src = movie.videoUrl;
+        v.muted = true;
         v.currentTime = 0;
-        hoverTimer.current = setTimeout(() => {
-          void v.play().catch(() => {});
-        }, 400);
+        hoverTimer.current = setTimeout(() => { void v.play().catch(() => {}); }, 400);
       }
     }
     onHover(movie, e.clientX, e.clientY);
@@ -357,16 +581,11 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
           <Play size={18} color="#fff" fill="#fff" />
         </div>
         <span style={{
-          position:       "absolute",
-          bottom:         4,
-          left:           4,
-          fontSize:       9,
-          fontWeight:     700,
-          padding:        "2px 5px",
-          borderRadius:   3,
-          background:     vtype === "youtube" ? "#ff0000cc" : vtype === "vimeo" ? "#1ab7eacc" : "rgba(0,0,0,.6)",
-          color:          "#fff",
-          backdropFilter: "blur(4px)",
+          position: "absolute", bottom: 4, left: 4,
+          fontSize: 9, fontWeight: 700,
+          padding: "2px 5px", borderRadius: 3,
+          background: vtype === "youtube" ? "#ff0000cc" : vtype === "vimeo" ? "#1ab7eacc" : "rgba(0,0,0,.6)",
+          color: "#fff", backdropFilter: "blur(4px)",
         }}>
           {vtype === "youtube" ? "YT" : vtype === "vimeo" ? "Vimeo" : "MP4"}
         </span>
@@ -376,9 +595,7 @@ function RelatedCard({ movie, isCurrent, onSelect, onHover }: RelatedCardProps) 
       <div className="rp-related-card__body">
         <div className="rp-related-card__title">{movie.title}</div>
         <div className="rp-related-card__meta">
-          <span className="rp-related-card__cat" style={{ color: pal.accent }}>
-            {movie.category}
-          </span>
+          <span className="rp-related-card__cat" style={{ color: pal.accent }}>{movie.category}</span>
           <span style={{ color: "var(--rp-text-dim)" }}>·</span>
           <span>{movie.year}</span>
         </div>
@@ -611,7 +828,6 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
 
       {/* Controls */}
       <div className="rp-controls">
-        {/* Progress */}
         <div
           ref={progressRef}
           className="rp-progress"
@@ -646,7 +862,6 @@ function DirectVideoPlayer({ movie, onEnded, onError }: DirectVideoPlayerProps) 
           </div>
         </div>
 
-        {/* Buttons */}
         <div className="rp-ctrl-row">
           <button type="button" className="rp-ctrl-btn" onClick={() => seek(-10)} title="Retroceder 10s">
             <SkipBack size={16} />
@@ -749,6 +964,8 @@ export default function ReproductorPage() {
   const [votes,  setVotes]  = useState(0);
   const [voted,  setVoted]  = useState(false);
 
+  const [shareOpen, setShareOpen] = useState(false);
+
   const [previewMovie, setPreviewMovie] = useState<MovieItem | null>(null);
   const [previewPos,   setPreviewPos]   = useState({ x: 0, y: 0 });
   const [previewVis,   setPreviewVis]   = useState(false);
@@ -823,15 +1040,6 @@ export default function ReproductorPage() {
     }
   };
 
-  /* ── share → WhatsApp ───────────────────────────────── */
-  const handleShare = () => {
-    if (!movie) return;
-    const movieUrl = `${getSiteBase()}/reproductor/${movie.id}`;
-    const text     = `🎬 *${movie.title}*\n${movie.description?.slice(0, 100)}…\n\n▶️ Ver en Nakama: ${movieUrl}`;
-    const waUrl    = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(waUrl, "_blank", "noopener,noreferrer");
-  };
-
   const handleEnded = () => {
     if (related.length > 0) router.push(`/reproductor/${related[0].id}`);
   };
@@ -887,7 +1095,11 @@ export default function ReproductorPage() {
             <div className="rp-topbar__crumb">
               <a href="/peliculas" className="rp-topbar__crumb-item">Volver</a>
               <ChevronRight size={11} className="rp-topbar__crumb-sep" />
-              <span className="rp-topbar__crumb-item" onClick={() => router.back()} style={{ cursor: "pointer" }}>
+              <span
+                className="rp-topbar__crumb-item"
+                onClick={() => router.back()}
+                style={{ cursor: "pointer" }}
+              >
                 {movie.category}
               </span>
               <ChevronRight size={11} className="rp-topbar__crumb-sep" />
@@ -932,11 +1144,12 @@ export default function ReproductorPage() {
                     <Download size={13} /> Descargar
                   </button>
                 )}
+                {/* ── SHARE BUTTON ── */}
                 <button
                   type="button"
                   className="rp-info__btn"
-                  title="Compartir en WhatsApp"
-                  onClick={handleShare}
+                  title="Compartir"
+                  onClick={() => setShareOpen(true)}
                 >
                   <Share2 size={13} /> Compartir
                 </button>
@@ -956,13 +1169,11 @@ export default function ReproductorPage() {
               <span style={{ fontSize: 12, color: "var(--rp-text-muted)" }}>{movie.duration}</span>
               <span className="rp-info__sep" />
               <span style={{
-                fontSize:   11,
-                fontWeight: 700,
-                padding:    "2px 7px",
-                borderRadius: 4,
+                fontSize: 11, fontWeight: 700,
+                padding: "2px 7px", borderRadius: 4,
                 background: vtype === "youtube" ? "#ff000022" : vtype === "vimeo" ? "#1ab7ea22" : "rgba(255,255,255,.08)",
                 color:      vtype === "youtube" ? "#ff4444"   : vtype === "vimeo" ? "#1ab7ea"   : "var(--rp-text-muted)",
-                border:     `1px solid ${vtype === "youtube" ? "#ff444444" : vtype === "vimeo" ? "#1ab7ea44" : "rgba(255,255,255,.1)"}`,
+                border: `1px solid ${vtype === "youtube" ? "#ff444444" : vtype === "vimeo" ? "#1ab7ea44" : "rgba(255,255,255,.1)"}`,
               }}>
                 {vtype === "youtube" ? "▶ YouTube" : vtype === "vimeo" ? "🎬 Vimeo" : "🔗 Directo"}
               </span>
@@ -1013,7 +1224,10 @@ export default function ReproductorPage() {
             />
 
             {related.length === 0 ? (
-              <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--rp-text-dim)", fontSize: 12 }}>
+              <div style={{
+                padding: "32px 20px", textAlign: "center",
+                color: "var(--rp-text-dim)", fontSize: 12,
+              }}>
                 Sin contenido relacionado
               </div>
             ) : (
@@ -1033,6 +1247,15 @@ export default function ReproductorPage() {
       </div>
 
       <MiniPreview movie={previewMovie} visible={previewVis} x={previewPos.x} y={previewPos.y} />
+
+      {/* ── SHARE MODAL ── */}
+      {shareOpen && (
+        <ShareModal
+          movie={movie}
+          pal={pal}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </div>
   );
 }
