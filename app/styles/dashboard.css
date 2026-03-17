@@ -82,12 +82,26 @@
   margin-bottom: 36px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .dashboard-header-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .dashboard-logo {
@@ -97,12 +111,22 @@
   letter-spacing: 0.2em;
   color: var(--red);
   text-shadow: 0 0 20px var(--red-glow);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dashboard-breadcrumb {
   font-size: 0.78rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .dashboard-header { row-gap: 10px; }
+  .dashboard-breadcrumb { display: none; }
+  .dashboard-header-left { gap: 8px; }
+  .dashboard-logo { font-size: 1.2rem; }
 }
 
 .dashboard-role-badge {
