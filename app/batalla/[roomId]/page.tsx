@@ -12,8 +12,6 @@ import {
   SkipForward, SkipBack, Play, Pause,
 } from "lucide-react";
 
-// ✅ IMPORTANTE: debe apuntar al backend Render (soporta WebSockets),
-//    NO a Vercel (que NO soporta WebSockets persistentes).
 const API = "https://nakama-backend-render.onrender.com";
 
 const INVITE_TIMEOUT_SEG = 30;
@@ -181,9 +179,15 @@ export default function BatallaPage() {
   const tokenRef          = useRef<string>("");
   const globalPhaseRef    = useRef<GlobalPhase>("lobby");
 
-  useEffect(() => { battleRef.current     = battle;         }, [battle]);
-  useEffect(() => { tokenRef.current      = token ?? "";    }, [token]);
-  useEffect(() => { globalPhaseRef.current = globalPhase;   }, [globalPhase]);
+  // ✅ NUEVO: delay de 10s antes de mostrar el botón iniciar cuando allReady
+  const [allReadyDelay,     setAllReadyDelay]     = useState(false);  // true = botón visible
+  const [allReadyCountdown, setAllReadyCountdown] = useState<number | null>(null);
+  const allReadyTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevAllReadyRef     = useRef(false);
+
+  useEffect(() => { battleRef.current      = battle;         }, [battle]);
+  useEffect(() => { tokenRef.current       = token ?? "";    }, [token]);
+  useEffect(() => { globalPhaseRef.current = globalPhase;    }, [globalPhase]);
 
   // ── Música ambiente del lobby ────────────────────────────
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -211,12 +215,58 @@ export default function BatallaPage() {
   const myId    = user?.id ?? "";
   const players = battle?.players ?? [];
 
-  // ✅ activePlayers excluye declined
   const activePlayers  = players.filter(p => p.status !== "declined");
   const isCreator      = activePlayers.length > 0 && activePlayers[0].userId === myId;
 
   myIdRef.current      = myId;
   isCreatorRef.current = isCreator;
+
+  const estado        = battle?.estado  ?? "waiting";
+  const amReady       = players.find(p => p.userId===myId)?.status === "accepted";
+  const nonDeclined   = activePlayers;
+  const allReady      = nonDeclined.length >= 2 && nonDeclined.every(p => p.status === "accepted");
+  const readyCount    = nonDeclined.filter(p => p.status === "accepted").length;
+  const hasRivalReady = nonDeclined.some(p => p.userId !== myId && p.status === "accepted");
+  const hasPending    = nonDeclined.some(p => p.status === "pending");
+  const canStartEarly = isCreator && amReady && hasRivalReady && hasPending;
+
+  // ✅ NUEVO: cuando allReady pasa de false→true, arrancar countdown de 10s
+  useEffect(() => {
+    if (!isCreator) return;
+
+    // allReady acaba de volverse true
+    if (allReady && !prevAllReadyRef.current) {
+      prevAllReadyRef.current = true;
+      setAllReadyDelay(false);
+      setAllReadyCountdown(10);
+
+      if (allReadyTimerRef.current) clearInterval(allReadyTimerRef.current);
+      let remaining = 10;
+      allReadyTimerRef.current = setInterval(() => {
+        remaining -= 1;
+        setAllReadyCountdown(remaining);
+        if (remaining <= 0) {
+          clearInterval(allReadyTimerRef.current!);
+          allReadyTimerRef.current = null;
+          setAllReadyCountdown(null);
+          setAllReadyDelay(true);
+        }
+      }, 1000);
+    }
+
+    // allReady volvió a false (alguien se fue)
+    if (!allReady && prevAllReadyRef.current) {
+      prevAllReadyRef.current = false;
+      if (allReadyTimerRef.current) { clearInterval(allReadyTimerRef.current); allReadyTimerRef.current = null; }
+      setAllReadyDelay(false);
+      setAllReadyCountdown(null);
+    }
+  }, [allReady, isCreator]);
+
+  // Limpiar timer al desmontar
+  useEffect(() => () => {
+    if (allReadyTimerRef.current) clearInterval(allReadyTimerRef.current);
+  }, []);
 
   // ── Socket del LOBBY ─────────────────────────────────────
   useEffect(() => {
@@ -262,7 +312,6 @@ export default function BatallaPage() {
           nombre:     data.nombre  ?? "",
           categorias: data.categorias ?? [],
         });
-        // Si ya está active al hacer fetch, transitar directamente
         if (data.estado === "active") {
           setGlobalPhase("game");
           globalPhaseRef.current = "game";
@@ -278,7 +327,7 @@ export default function BatallaPage() {
     setInviteCountdown(null);
   }, []);
 
-  // ── Disparar inicio con los que aceptaron ────────────────
+  // ── Disparar inicio ──────────────────────────────────────
   const doStart = useCallback(async () => {
     if (startingRef.current) return;
     startingRef.current = true;
@@ -290,7 +339,6 @@ export default function BatallaPage() {
         headers: { Authorization:`Bearer ${tokenRef.current}` },
       });
       if (!res.ok) {
-        // Fallback: transitar de todas formas
         setGlobalPhase("game");
         globalPhaseRef.current = "game";
       }
@@ -337,12 +385,8 @@ export default function BatallaPage() {
     if (socket.connected) joinRoom();
     else socket.once("connect", joinRoom);
 
-    // ✅ FIX: escuchar en canal personal user:${myId}
-    // El servidor ahora emite state_update y game_start también a user:${userId}
     const onStateUpdate = (data: { roomId:string; players:BattlePlayer[]; estado:string }) => {
-      // Ignorar updates de otras salas
       if (data.roomId && data.roomId !== roomId) return;
-
       console.log("[batalla] state_update →", data.estado, "phase actual:", globalPhaseRef.current);
 
       const next: BattleState = {
@@ -356,7 +400,6 @@ export default function BatallaPage() {
       setBattle(next);
       setLoading(false);
 
-      // ✅ FIX CRÍTICO: si estado es active y aún estamos en lobby → pasar a game
       if (data.estado === "active" && globalPhaseRef.current === "lobby") {
         console.log("[batalla] transitando a game phase por state_update active");
         clearInviteTimer();
@@ -373,26 +416,15 @@ export default function BatallaPage() {
       const hasPending   = nonDeclined.some(p => p.userId !== myId && p.status === "pending");
       const rivalAcc     = nonDeclined.filter(p => p.userId !== myId && p.status === "accepted").length;
       const allActiveAcc = nonDeclined.length >= 2 && nonDeclined.every(p => p.status === "accepted");
-
       const anyoneLeft   = nonDeclined.some(p => p.userId !== myId);
-      if (!anyoneLeft && creatorAcc) {
-        clearInviteTimer();
-        fadeOutAndNavigate("/comunidad");
-        return;
-      }
 
+      if (!anyoneLeft && creatorAcc) { clearInviteTimer(); fadeOutAndNavigate("/comunidad"); return; }
       if (!creatorAcc) { clearInviteTimer(); return; }
       if (allActiveAcc) { clearInviteTimer(); return; }
-
-      if (hasPending) {
-        startInviteCountdown();
-      } else if (rivalAcc === 0) {
-        clearInviteTimer();
-        fadeOutAndNavigate("/comunidad");
-      }
+      if (hasPending) { startInviteCountdown(); }
+      else if (rivalAcc === 0) { clearInviteTimer(); fadeOutAndNavigate("/comunidad"); }
     };
 
-    // ✅ FIX: escuchar game_start también en el canal personal
     const onGameStart = (data: any) => {
       const incomingRoomId = data?.roomId ?? roomId;
       if (incomingRoomId !== roomId) return;
@@ -418,7 +450,7 @@ export default function BatallaPage() {
     };
 
     socket.on("battle:state_update",       onStateUpdate);
-    socket.on("battle:game_start",         onGameStart);   // ✅ FIX: escuchar game_start en lobby también
+    socket.on("battle:game_start",         onGameStart);
     socket.on("battle:player_online",      onOnline);
     socket.on("battle:player_left",        onLeft);
     socket.on("battle:player_answered",    onAnswered);
@@ -438,17 +470,6 @@ export default function BatallaPage() {
       socket.off("battle:invitation_expired",onInvitationExpired);
     };
   }, [socket, roomId, clearInviteTimer, startInviteCountdown, router, fadeOutAndNavigate]);
-
-  // ── Derivados ────────────────────────────────────────────
-  const estado        = battle?.estado  ?? "waiting";
-  const amReady       = players.find(p => p.userId===myId)?.status === "accepted";
-
-  const nonDeclined   = activePlayers;
-  const allReady      = nonDeclined.length >= 2 && nonDeclined.every(p => p.status === "accepted");
-  const readyCount    = nonDeclined.filter(p => p.status === "accepted").length;
-  const hasRivalReady = nonDeclined.some(p => p.userId !== myId && p.status === "accepted");
-  const hasPending    = nonDeclined.some(p => p.status === "pending");
-  const canStartEarly = isCreator && amReady && hasRivalReady && hasPending;
 
   const sendReady = useCallback(() => {
     if (!socket || !roomId) return;
@@ -629,8 +650,37 @@ export default function BatallaPage() {
           </div>
         )}
 
-        {/* 4 — Todos los activos aceptaron → botón de inicio normal */}
-        {estado === "waiting" && allReady && isCreator && (
+        {/* 4 — Todos listos: countdown de 10s antes de mostrar el botón */}
+        {estado === "waiting" && allReady && isCreator && !allReadyDelay && allReadyCountdown !== null && (
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10 }}>
+            <div style={S.waitMsg}>
+              <PulseDot color="#22c55e"/>
+              ¡Todos listos! Preparando la batalla...
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+              <div style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)" }}>El botón aparece en</div>
+              <div style={{ fontSize:"2.2rem", fontWeight:900, lineHeight:1,
+                color: allReadyCountdown <= 5 ? "#f97316" : "#22c55e",
+                textShadow:`0 0 20px ${allReadyCountdown <= 5 ? "rgba(249,115,22,0.7)" : "rgba(34,197,94,0.6)"}`,
+              }}>
+                {allReadyCountdown}s
+              </div>
+              <div style={{ width:160, height:4, borderRadius:2, background:"rgba(255,255,255,0.08)" }}>
+                <div style={{ height:"100%", borderRadius:2,
+                  width:`${((10 - allReadyCountdown) / 10) * 100}%`,
+                  background: allReadyCountdown <= 5 ? "linear-gradient(90deg,#f97316,#fbbf24)" : "linear-gradient(90deg,#22c55e,#16a34a)",
+                  transition:"width 1s linear",
+                }}/>
+              </div>
+              <div style={{ fontSize:"0.68rem", color:"rgba(255,255,255,0.2)" }}>
+                Dando tiempo al rival para conectarse al juego
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5 — Todos listos + pasaron los 10s → botón habilitado */}
+        {estado === "waiting" && allReady && isCreator && allReadyDelay && (
           <button
             onClick={() => doStart()}
             disabled={starting}
