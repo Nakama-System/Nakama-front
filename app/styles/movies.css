@@ -869,3 +869,7 @@ html, body {
 @media (min-width: 601px) and (max-width: 900px) {
   .nk-grid { grid-template-columns: repeat(2, 1fr); }
 }
+.nk-hero__title-ka {
+  color: #e60012;
+  font: inherit;
+}
