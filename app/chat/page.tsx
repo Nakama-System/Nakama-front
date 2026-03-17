@@ -92,15 +92,16 @@ type Ack<T = undefined> = AckOk<T> | AckErr;
 const API = "https://nakama-backend-render.onrender.com";
 const WS_URL = "https://nakama-backend-render.onrender.com";
 
-// ── Helper: detecta si una URL es video por extensión ────
+// ── Helper: detecta si una URL es video o gif animado ────
+// Incluye .gif para que también se anime en todos los avatares
 function isVideoUrl(url?: string): boolean {
   if (!url) return false;
-  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+  return /\.(mp4|webm|mov|gif)(\?|$)/i.test(url);
 }
 
 // ── Helper: extrae videoSrc de cualquier objeto usuario ──
 // Cubre: profileVideo.url, videoUrl, profileVideoUrl,
-// Y también avatarUrl si la URL misma es un archivo de video
+// Y también avatarUrl si la URL misma es video o gif
 function getVideoSrc(obj: any): string | undefined {
   return (
     obj?.profileVideo?.url ||
@@ -111,7 +112,7 @@ function getVideoSrc(obj: any): string | undefined {
   );
 }
 
-// ── Helper: img solo si avatarUrl NO es video ────────────
+// ── Helper: img solo si avatarUrl NO es video ni gif ─────
 function getImgSrc(obj: any): string | undefined {
   const url = obj?.avatarUrl;
   return url && !isVideoUrl(url) ? url : undefined;
@@ -147,6 +148,8 @@ function useScrollBlur(threshold = 60, debounceMs = 40) {
   return { containerRef, headerHidden, headerScrolled };
 }
 
+
+
 // ══════════════════════════════════════════════════════════
 // Normalización de mensajes
 // ══════════════════════════════════════════════════════════
@@ -157,9 +160,9 @@ function normalizeMessage(m: ServerMessage): Message {
     _id: m.id,
     senderId: senderObj?._id ?? (typeof m.sender === "string" ? m.sender : ""),
     senderName: senderObj?.username ?? "Sistema",
-    // Si avatarUrl es video, no lo ponemos como imagen
+    // Si avatarUrl es video o gif, no lo ponemos como imagen estática
     senderAvatar: rawAvatar && !isVideoUrl(rawAvatar) ? rawAvatar : undefined,
-    // Video: primero profileVideo.url, luego avatarUrl si es video
+    // Video/gif: primero profileVideo.url, luego avatarUrl si es animado
     senderVideo: senderObj?.profileVideo?.url || (isVideoUrl(rawAvatar) ? rawAvatar : undefined),
     content: m.deleted ? "Mensaje eliminado" : m.text,
     type: m.attachment ? (m.attachment.type as Message["type"]) : "text",
@@ -254,6 +257,18 @@ export default function ChatsPage() {
       if (saved) setChatWallpapers(JSON.parse(saved));
     } catch {}
   }, []);
+  
+
+
+  useEffect(() => {
+  if (user) {
+    console.log("profileVideo:", user.profileVideo);
+    console.log("avatarUrl:", user.avatarUrl);
+    console.log("myVideoSrc calculado:", 
+      user?.profileVideo?.url || user?.avatarUrl
+    );
+  }
+}, [user]);
 
   function setWallpaper(chatId: string, wallId: string) {
     const next = { ...chatWallpapers, [chatId]: wallId };
@@ -529,7 +544,7 @@ export default function ChatsPage() {
       if (!res.ok) return;
       const newConv: Conversation = {
         _id: conv._id, type: "private", name: u.username,
-        // avatarUrl guarda el video si lo tiene, así ConvItem lo detecta con isVideoUrl
+        // avatarUrl guarda el video/gif si lo tiene, así ConvItem lo detecta con isVideoUrl
         avatarUrl: getVideoSrc(u) || u.avatarUrl || conv.avatarUrl,
         unread: 0, lastMessage: conv.lastMessage || "", lastTime: conv.lastTime || "", otherId: u._id,
       };
@@ -691,6 +706,9 @@ export default function ChatsPage() {
     setForwardingMsgs([]); setShowForwardModal(false); setSelectedMsgs(new Set()); setSelectMode(false);
   }
 
+
+
+
   async function handleBlock(targetUserId: string, currently: boolean) {
     const token = localStorage.getItem("nakama_token");
     try {
@@ -734,7 +752,7 @@ export default function ChatsPage() {
   const selectedMsgList = messages.filter((m) => selectedMsgs.has(m._id));
   const showingAgenda = tab === "agenda";
 
-  // Video/imagen del usuario logueado
+  // Video/gif/imagen del usuario logueado
   const myVideoSrc = getVideoSrc(user);
   const myImgSrc = getImgSrc(user);
 
@@ -753,16 +771,26 @@ export default function ChatsPage() {
             <button className="chat-sidebar__me-avatar-btn" onClick={() => setShowPrivacyModal(true)}>
               <div className="chat-sidebar__me-avatar-wrap">
                 {myVideoSrc ? (
-                  <video
-                    src={myVideoSrc}
-                    width={30}
-                    height={30}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", display: "block" }}
-                  />
+                  /\.gif(\?|$)/i.test(myVideoSrc) ? (
+                    <img
+                      src={myVideoSrc}
+                      alt={user.username}
+                      width={30}
+                      height={30}
+                      style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <video
+                      src={myVideoSrc}
+                      width={30}
+                      height={30}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                    />
+                  )
                 ) : (
                   <UserAvatar src={myImgSrc} alt={user.username} size={30} />
                 )}
@@ -852,16 +880,26 @@ export default function ChatsPage() {
                         <div key={s._id} className="chat-suggestion chat-suggestion--fadein">
                           <div className="chat-suggestion__avatar">
                             {suggestionVideo ? (
-                              <video
-                                src={suggestionVideo}
-                                width={36}
-                                height={36}
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                                style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", display: "block" }}
-                              />
+                              /\.gif(\?|$)/i.test(suggestionVideo) ? (
+                                <img
+                                  src={suggestionVideo}
+                                  alt={s.username}
+                                  width={36}
+                                  height={36}
+                                  style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                                />
+                              ) : (
+                                <video
+                                  src={suggestionVideo}
+                                  width={36}
+                                  height={36}
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                  style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                                />
+                              )
                             ) : (
                               <UserAvatar src={suggestionImg} alt={s.username} size={36} />
                             )}
@@ -948,16 +986,26 @@ export default function ChatsPage() {
             <div className="chat-empty-state__inner">
               <div className="chat-empty-state__avatar-wrap">
                 {myVideoSrc ? (
-                  <video
-                    src={myVideoSrc}
-                    width={72}
-                    height={72}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block" }}
-                  />
+                  /\.gif(\?|$)/i.test(myVideoSrc) ? (
+                    <img
+                      src={myVideoSrc}
+                      alt={user.username}
+                      width={72}
+                      height={72}
+                      style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : (
+                    <video
+                      src={myVideoSrc}
+                      width={72}
+                      height={72}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block" }}
+                    />
+                  )
                 ) : (
                   <UserAvatar src={myImgSrc} alt={user.username} size={72} fallback={user.username[0]?.toUpperCase()} />
                 )}
