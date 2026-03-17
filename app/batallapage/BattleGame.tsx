@@ -74,6 +74,7 @@ const PRIZE_PACT     = 750;
 const MAX_PREGUNTAS  = 10;
 const AUTO_START_SEG = 15;
 
+// ✅ NUEVO: segundos que se espera a que el rival termine antes de resolver automáticamente
 const WAITING_RIVAL_TIMEOUT_SEG = 30;
 
 // ═══════════════════════════════════════════════════════════
@@ -107,7 +108,7 @@ function generateQuestions(categorias: string[]): Question[] {
 // ═══════════════════════════════════════════════════════════
 interface BattleGameProps {
   roomId:     string;
-  players:    BattlePlayer[];
+  players:    BattlePlayer[];   // ya viene filtrado: solo los que aceptaron (status !== "declined")
   categorias: string[];
   myUserId:   string;
   isCreator:  boolean;
@@ -129,14 +130,20 @@ export default function BattleGame({
   const creatorSetupDone = useRef(false);
   const autoTimerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ✅ Solo se permite 1 revancha.
   const duelRoundRef = useRef(0);
+
+  // ✅ Scores acumulados localmente
   const myFinalScoreRef = useRef(0);
 
+  // ✅ initialPlayers ya viene filtrado (solo accepted desde page.tsx → activePlayers)
+  // Excluimos explícitamente cualquier "declined" que pudiera colarse
   const acceptedInitial = initialPlayers.filter(p => p.status !== "declined");
   const activeTotalRef  = useRef(acceptedInitial.length);
   const donePlayersRef  = useRef<Set<string>>(new Set());
   const myScoreAtDone   = useRef(0);
 
+  // ✅ NUEVO: timer de espera al rival (30s tras terminar todas las preguntas)
   const rivalTimeoutRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const [rivalCountdown, setRivalCountdown] = useState<number | null>(null);
 
@@ -186,6 +193,7 @@ export default function BattleGame({
   const [myLastResult, setMyLastResult] = useState<PlayerRoundResult | null>(null);
   const [answeredSet,  setAnsweredSet]  = useState<Set<string>>(new Set());
 
+  // ✅ Solo los jugadores que aceptaron (sin declined)
   const [players,      setPlayers]      = useState<BattlePlayer[]>(acceptedInitial);
 
   const [duelPair,     setDuelPair]     = useState<string[]>([]);
@@ -195,6 +203,7 @@ export default function BattleGame({
   const [duelWinnerId, setDuelWinnerId] = useState<string | null>(null);
   const [pendingPlayers, setPendingPlayers] = useState<string[]>([]);
 
+  // refs estables
   const qIndexRef      = useRef(0);
   const timeLeftRef    = useRef(TIEMPO_BASE);
   const activePowerRef = useRef<string | null>(null);
@@ -213,6 +222,7 @@ export default function BattleGame({
   useEffect(() => { duelPairRef.current    = duelPair;    }, [duelPair]);
   useEffect(() => { playersRef.current     = players;     }, [players]);
 
+  // ✅ NUEVO: limpiar el timer de espera al rival
   const clearRivalTimeout = useCallback(() => {
     if (rivalTimeoutRef.current) {
       clearInterval(rivalTimeoutRef.current);
@@ -221,6 +231,7 @@ export default function BattleGame({
     setRivalCountdown(null);
   }, []);
 
+  // ✅ NUEVO: resolver el resultado final usando los scores actuales
   const resolveResult = useCallback((currentPlayers: BattlePlayer[]) => {
     clearRivalTimeout();
     const sorted = [...currentPlayers].sort((a, b) => b.score - a.score);
@@ -240,8 +251,9 @@ export default function BattleGame({
     }
   }, [clearRivalTimeout]);
 
+  // ✅ NUEVO: arrancar countdown de 30s esperando al rival
   const startRivalTimeout = useCallback(() => {
-    if (rivalTimeoutRef.current !== null) return;
+    if (rivalTimeoutRef.current !== null) return; // ya corriendo
     let remaining = WAITING_RIVAL_TIMEOUT_SEG;
     setRivalCountdown(remaining);
 
@@ -260,6 +272,7 @@ export default function BattleGame({
     }, 1000);
   }, [resolveResult]);
 
+  // Limpiar al desmontar
   useEffect(() => () => clearRivalTimeout(), [clearRivalTimeout]);
 
   // ─────────────────────────────────────────────────────────
@@ -322,6 +335,7 @@ export default function BattleGame({
       setAnsweredSet(prev => new Set(prev).add(result.userId));
     });
 
+    // ✅ game_over del server: scores FINALES y REALES
     const onGameOver = (data: { players: BattlePlayer[]; winnerId: string | null }) => {
       const cur = phaseRef.current;
       const duelPhases: GamePhase[] = [
@@ -330,15 +344,17 @@ export default function BattleGame({
       ];
       if (duelPhases.includes(cur)) return;
 
+      // ✅ Filtrar declined del resultado también
       const activePlayers = data.players.filter(p => p.status !== "declined");
       console.log("[BattleGame] game_over scores reales:", activePlayers.map(p => `${p.username}:${p.score}`));
 
-      clearRivalTimeout();
+      clearRivalTimeout(); // llegó el game_over → cancelar el timeout propio
       setPlayers(activePlayers);
       resolveResult(activePlayers);
     };
     s.on("battle:game_over", onGameOver);
 
+    // ✅ FIX: player_done_ack — alguien terminó
     s.on("battle:player_done_ack", ({ doneCount, totalCount, pendingUsernames, doneUserIds }: {
       doneCount: number; totalCount: number; pendingUsernames: string[]; doneUserIds?: string[];
     }) => {
@@ -346,6 +362,7 @@ export default function BattleGame({
       setPendingPlayers(pendingUsernames);
       console.log(`[BattleGame] ${doneCount}/${totalCount} terminaron. Pendientes: ${pendingUsernames.join(", ")}`);
 
+      // ✅ Si todos los activos terminaron → el server debería emitir game_over pronto
       const activeTotal = activeTotalRef.current;
       const doneSoFar   = donePlayersRef.current.size;
       if (doneSoFar >= activeTotal && phaseRef.current === "waiting_game_over") {
@@ -357,12 +374,16 @@ export default function BattleGame({
       }
     });
 
+    // ✅ NUEVO: si un jugador activo se desconecta/rechaza durante el juego, actualizar activos
     s.on("battle:player_left", ({ userId }: { userId: string }) => {
+      // Marcar como eliminated para que no bloquee el game_over
       setPlayers(prev => {
         const updated = prev.map(p => p.userId === userId ? { ...p, eliminated: true } : p);
         playersRef.current = updated;
+        // Recalcular cuántos activos quedan
         const stillActive = updated.filter(p => !p.eliminated);
         activeTotalRef.current = stillActive.length;
+        // Si yo ya terminé y el que se fue era el único pendiente → resolver
         const doneSoFar = donePlayersRef.current.size;
         if (doneSoFar >= activeTotalRef.current && phaseRef.current === "waiting_game_over") {
           setTimeout(() => {
@@ -534,8 +555,10 @@ export default function BattleGame({
       setPendingPlayers([]);
       setPhase("waiting_game_over"); phaseRef.current = "waiting_game_over";
 
+      // ✅ NUEVO: arrancar el countdown de 30s para no esperar al rival eternamente
       startRivalTimeout();
 
+      // Caso edge: yo soy el único activo
       if (donePlayersRef.current.size >= activeTotalRef.current) {
         clearRivalTimeout();
         setTimeout(() => {
@@ -607,6 +630,7 @@ export default function BattleGame({
 
   const currentQ = questions[qIndex] ?? null;
 
+  // ✅ Solo los jugadores NO eliminados y NO declined para mostrar en pantalla
   const visiblePlayers = players.filter(p => !p.eliminated && p.status !== "declined");
 
   // ─────────────────────────────────────────────────────────
@@ -695,38 +719,12 @@ export default function BattleGame({
 }
 
 // ═══════════════════════════════════════════════════════════
-// WAITING START — con delay de 10s antes de mostrar el botón
+// WAITING START
 // ═══════════════════════════════════════════════════════════
 function WaitingStartScreen({ players, isCreator, myUserId, autoSeg, onStart }: {
   players: BattlePlayer[]; isCreator: boolean; myUserId: string; autoSeg: number | null; onStart: () => void;
 }) {
   const hasRival = players.some(p => p.userId !== myUserId);
-  const [canStart,    setCanStart]    = useState(false);
-  const [startDelay,  setStartDelay]  = useState(10);
-
-  // Arranca countdown de 10s solo cuando llega el primer rival
-  // Si el rival se va, resetea
-  useEffect(() => {
-    if (!isCreator) return;
-    if (!hasRival) {
-      setCanStart(false);
-      setStartDelay(10);
-      return;
-    }
-    if (canStart) return; // ya habilitado, no reiniciar
-    let remaining = 10;
-    setStartDelay(remaining);
-    const interval = setInterval(() => {
-      remaining -= 1;
-      setStartDelay(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-        setCanStart(true);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isCreator, hasRival]); // eslint-disable-line
-
   return (
     <div style={{ minHeight:"100vh", background:"#080810", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:28, padding:24, fontFamily:"'Arial Black', Impact, sans-serif", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", background:"radial-gradient(ellipse at 50% 40%, rgba(249,115,22,0.07) 0%, transparent 65%)" }}/>
@@ -734,8 +732,6 @@ function WaitingStartScreen({ players, isCreator, myUserId, autoSeg, onStart }: 
       <h2 style={{ color:"#fff", margin:0, fontSize:"clamp(1.6rem,5vw,2.4rem)", textAlign:"center", zIndex:1 }}>
         {isCreator ? "¡Todo listo!" : "Esperando al creador..."}
       </h2>
-
-      {/* Tarjetas de jugadores */}
       <div style={{ display:"flex", flexWrap:"wrap", gap:16, justifyContent:"center", maxWidth:480, zIndex:1 }}>
         {players.map(p => (
           <div key={p.userId} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8, padding:"16px 20px", borderRadius:14, background: p.userId === myUserId ? "rgba(249,115,22,0.1)" : "rgba(255,255,255,0.04)", border:`1.5px solid ${p.userId === myUserId ? "#f97316" : "rgba(255,255,255,0.08)"}` }}>
@@ -747,8 +743,6 @@ function WaitingStartScreen({ players, isCreator, myUserId, autoSeg, onStart }: 
           </div>
         ))}
       </div>
-
-      {/* Cómo funciona */}
       <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 20px", maxWidth:360, zIndex:1, fontFamily:"'Segoe UI',sans-serif" }}>
         <div style={{ fontSize:"0.65rem", letterSpacing:"0.2em", color:"#f97316", marginBottom:10 }}>CÓMO FUNCIONA</div>
         <div style={{ fontSize:"0.78rem", color:"rgba(255,255,255,0.5)", lineHeight:1.9 }}>
@@ -760,66 +754,28 @@ function WaitingStartScreen({ players, isCreator, myUserId, autoSeg, onStart }: 
           • {MAX_PREGUNTAS} preguntas · {TIEMPO_BASE} segundos cada una
         </div>
       </div>
-
-      {/* Sección del creador */}
       {isCreator && (
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, zIndex:1 }}>
-
-          {/* Sin rival todavía */}
-          {!hasRival && (
-            <div style={{ display:"flex", alignItems:"center", gap:10, color:"#9ca3af", fontSize:"0.85rem", fontFamily:"'Segoe UI',sans-serif" }}>
-              <span style={{ display:"inline-block", width:10, height:10, borderRadius:"50%", background:"#f59e0b", animation:"waitPulse 1.4s ease infinite" }}/>
-              Esperando que el rival se una a la sala...
-            </div>
-          )}
-
-          {/* Rival llegó pero countdown activo */}
-          {hasRival && !canStart && (
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, color:"#22c55e", fontSize:"0.85rem", fontFamily:"'Segoe UI',sans-serif" }}>
-                <span style={{ display:"inline-block", width:10, height:10, borderRadius:"50%", background:"#22c55e", boxShadow:"0 0 8px #22c55e" }}/>
-                ¡Rival en sala! El botón aparece en...
-              </div>
-              <div style={{ fontSize:"2.8rem", fontWeight:900, color:"#f97316", textShadow:"0 0 20px rgba(249,115,22,0.7)", lineHeight:1, fontFamily:"'Arial Black',sans-serif" }}>
-                {startDelay}s
-              </div>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:10, zIndex:1 }}>
+          <button onClick={onStart} style={{ background:"linear-gradient(135deg,#f97316,#e05000)", border:"none", color:"#fff", fontWeight:900, padding:"16px 52px", borderRadius:14, cursor:"pointer", fontSize:"1.05rem", letterSpacing:"0.08em", boxShadow:"0 4px 28px rgba(249,115,22,0.5)", fontFamily:"'Arial Black',sans-serif", animation:"startPulse 1.8s ease infinite" }}>
+            🚀 INICIAR BATALLA
+          </button>
+          {autoSeg !== null && hasRival && (
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, fontFamily:"'Segoe UI',sans-serif" }}>
+              <div style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)" }}>Auto-inicio en</div>
+              <div style={{ fontSize:"2rem", fontWeight:900, color:"#f97316", textShadow:"0 0 16px rgba(249,115,22,0.6)", lineHeight:1 }}>{autoSeg}s</div>
               <div style={{ width:160, height:4, borderRadius:2, background:"rgba(255,255,255,0.08)" }}>
-                <div style={{ height:"100%", borderRadius:2, width:`${((10 - startDelay) / 10) * 100}%`, background:"linear-gradient(90deg,#f97316,#fbbf24)", transition:"width 1s linear" }}/>
-              </div>
-              <div style={{ fontSize:"0.68rem", color:"rgba(255,255,255,0.25)", fontFamily:"'Segoe UI',sans-serif" }}>
-                Dando tiempo al rival para cargar la sala...
+                <div style={{ height:"100%", borderRadius:2, width:`${(autoSeg / AUTO_START_SEG) * 100}%`, background:"linear-gradient(90deg,#f97316,#fbbf24)", transition:"width 1s linear" }}/>
               </div>
             </div>
-          )}
-
-          {/* Botón habilitado */}
-          {hasRival && canStart && (
-            <>
-              <button onClick={onStart} style={{ background:"linear-gradient(135deg,#f97316,#e05000)", border:"none", color:"#fff", fontWeight:900, padding:"16px 52px", borderRadius:14, cursor:"pointer", fontSize:"1.05rem", letterSpacing:"0.08em", boxShadow:"0 4px 28px rgba(249,115,22,0.5)", fontFamily:"'Arial Black',sans-serif", animation:"startPulse 1.8s ease infinite" }}>
-                🚀 INICIAR BATALLA
-              </button>
-              {autoSeg !== null && (
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, fontFamily:"'Segoe UI',sans-serif" }}>
-                  <div style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)" }}>Auto-inicio en</div>
-                  <div style={{ fontSize:"2rem", fontWeight:900, color:"#f97316", textShadow:"0 0 16px rgba(249,115,22,0.6)", lineHeight:1 }}>{autoSeg}s</div>
-                  <div style={{ width:160, height:4, borderRadius:2, background:"rgba(255,255,255,0.08)" }}>
-                    <div style={{ height:"100%", borderRadius:2, width:`${(autoSeg / AUTO_START_SEG) * 100}%`, background:"linear-gradient(90deg,#f97316,#fbbf24)", transition:"width 1s linear" }}/>
-                  </div>
-                </div>
-              )}
-            </>
           )}
         </div>
       )}
-
-      {/* Sección del invitado */}
       {!isCreator && (
         <div style={{ display:"flex", alignItems:"center", gap:10, color:"#9ca3af", fontSize:"0.88rem", fontFamily:"'Segoe UI',sans-serif", zIndex:1 }}>
           <span style={{ display:"inline-block", width:10, height:10, borderRadius:"50%", background:"#f59e0b", animation:"waitPulse 1.4s ease infinite" }}/>
           El creador iniciará la batalla...
         </div>
       )}
-
       <style>{`
         @keyframes startPulse { 0%,100%{box-shadow:0 4px 28px rgba(249,115,22,0.5)} 50%{box-shadow:0 6px 44px rgba(249,115,22,0.85)} }
         @keyframes waitPulse  { 0%,100%{opacity:1} 50%{opacity:0.25} }
@@ -965,52 +921,74 @@ function QuestionScreen({ question, qIndex, total, timeLeft, players, myUserId, 
 }
 
 // ═══════════════════════════════════════════════════════════
-// WAITING GAME OVER
+// ✅ WAITING GAME OVER — con countdown de 30s al rival
 // ═══════════════════════════════════════════════════════════
 function WaitingGameOverScreen({ players, myUserId, pendingPlayers, rivalCountdown }: {
   players: BattlePlayer[];
   myUserId: string;
   pendingPlayers: string[];
-  rivalCountdown: number | null;
+  rivalCountdown: number | null;   // ✅ NUEVO: countdown de 30s
 }) {
   const me = players.find(p => p.userId === myUserId);
 
   return (
     <div style={{ minHeight:"100vh", background:"#080810", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:24, padding:24, fontFamily:"'Arial Black', Impact, sans-serif", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", background:"radial-gradient(ellipse at 50% 40%, rgba(0,200,255,0.05) 0%, transparent 65%)" }}/>
+
       <div style={{ fontSize:"0.65rem", letterSpacing:"0.4em", color:"#00c8ff", zIndex:1 }}>NAKAMA BATTLE — RONDA COMPLETADA</div>
+
       <div style={{ zIndex:1 }}>
         <div style={{ fontSize:"3.5rem", animation:"iconBounce 1.6s ease infinite" }}>⏳</div>
       </div>
+
       <h2 style={{ color:"#fff", margin:0, fontSize:"clamp(1.4rem,4vw,2rem)", textAlign:"center", zIndex:1 }}>
         ¡Terminaste! Esperando al rival...
       </h2>
+
+      {/* ✅ NUEVO: countdown visual de 30s */}
       {rivalCountdown !== null && (
         <div style={{ zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
           <div style={{ fontSize:"0.68rem", color:"rgba(255,255,255,0.3)", fontFamily:"'Segoe UI',sans-serif" }}>
             {rivalCountdown > 0 ? "Resultado automático en" : "Calculando resultado..."}
           </div>
-          <div style={{ fontSize:"2.2rem", fontWeight:900, lineHeight:1, color: rivalCountdown <= 10 ? "#ef4444" : "#f59e0b", textShadow:`0 0 20px ${rivalCountdown <= 10 ? "rgba(239,68,68,0.6)" : "rgba(245,158,11,0.6)"}` }}>
+          <div style={{
+            fontSize:"2.2rem", fontWeight:900, lineHeight:1,
+            color: rivalCountdown <= 10 ? "#ef4444" : "#f59e0b",
+            textShadow:`0 0 20px ${rivalCountdown <= 10 ? "rgba(239,68,68,0.6)" : "rgba(245,158,11,0.6)"}`,
+          }}>
             {rivalCountdown}s
           </div>
           <div style={{ width:200, height:5, borderRadius:3, background:"rgba(255,255,255,0.07)" }}>
-            <div style={{ height:"100%", borderRadius:3, width:`${(rivalCountdown / WAITING_RIVAL_TIMEOUT_SEG) * 100}%`, background: rivalCountdown <= 10 ? "linear-gradient(90deg,#ef4444,#dc2626)" : "linear-gradient(90deg,#f59e0b,#fbbf24)", transition:"width 1s linear", boxShadow: rivalCountdown <= 10 ? "0 0 8px rgba(239,68,68,0.5)" : "0 0 8px rgba(245,158,11,0.4)" }}/>
+            <div style={{
+              height:"100%", borderRadius:3,
+              width:`${(rivalCountdown / WAITING_RIVAL_TIMEOUT_SEG) * 100}%`,
+              background: rivalCountdown <= 10
+                ? "linear-gradient(90deg,#ef4444,#dc2626)"
+                : "linear-gradient(90deg,#f59e0b,#fbbf24)",
+              transition:"width 1s linear",
+              boxShadow: rivalCountdown <= 10 ? "0 0 8px rgba(239,68,68,0.5)" : "0 0 8px rgba(245,158,11,0.4)",
+            }}/>
           </div>
           <div style={{ fontSize:"0.65rem", color:"rgba(255,255,255,0.2)", fontFamily:"'Segoe UI',sans-serif" }}>
             Si el rival no termina, se cuenta con los puntos que lleva
           </div>
         </div>
       )}
+
+      {/* Score propio */}
       {me && (
         <div style={{ zIndex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:8, padding:"20px 32px", borderRadius:16, background:"rgba(0,200,255,0.06)", border:"1.5px solid rgba(0,200,255,0.2)" }}>
           <AvatarMed url={me.avatarUrl} name={me.username} size={56}/>
           <div style={{ color:"#fff", fontFamily:"'Segoe UI',sans-serif", fontWeight:700 }}>{me.username}</div>
           <div style={{ fontSize:"2.2rem", fontWeight:900, color:"#00c8ff", letterSpacing:"-0.02em" }}>
-            {me.score.toLocaleString()}<span style={{ fontSize:"0.7rem", color:"#6b7280", marginLeft:6 }}>pts</span>
+            {me.score.toLocaleString()}
+            <span style={{ fontSize:"0.7rem", color:"#6b7280", marginLeft:6 }}>pts</span>
           </div>
           <div style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)", fontFamily:"'Segoe UI',sans-serif" }}>Tu puntaje final</div>
         </div>
       )}
+
+      {/* Estado del rival */}
       {players.filter(p => p.userId !== myUserId).map(rival => {
         const isPending = pendingPlayers.length === 0 || pendingPlayers.includes(rival.username);
         return (
@@ -1020,9 +998,15 @@ function WaitingGameOverScreen({ players, myUserId, pendingPlayers, rivalCountdo
               <div style={{ color:"#fff", fontWeight:700, fontSize:"0.85rem" }}>{rival.username}</div>
               <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
                 {isPending ? (
-                  <><span style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:"#f59e0b", animation:"waitPulse 1.4s ease infinite" }}/><span style={{ fontSize:"0.72rem", color:"#f59e0b" }}>Respondiendo...</span></>
+                  <>
+                    <span style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:"#f59e0b", animation:"waitPulse 1.4s ease infinite" }}/>
+                    <span style={{ fontSize:"0.72rem", color:"#f59e0b" }}>Respondiendo...</span>
+                  </>
                 ) : (
-                  <><span style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:"#22c55e" }}/><span style={{ fontSize:"0.72rem", color:"#22c55e" }}>¡Terminó!</span></>
+                  <>
+                    <span style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:"#22c55e" }}/>
+                    <span style={{ fontSize:"0.72rem", color:"#22c55e" }}>¡Terminó!</span>
+                  </>
                 )}
               </div>
             </div>
@@ -1032,6 +1016,7 @@ function WaitingGameOverScreen({ players, myUserId, pendingPlayers, rivalCountdo
           </div>
         );
       })}
+
       <div style={{ zIndex:1, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:"10px 16px", maxWidth:320, fontFamily:"'Segoe UI',sans-serif", textAlign:"center" }}>
         <div style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.25)", lineHeight:1.7 }}>
           Los resultados se mostrarán cuando todos hayan terminado<br/>
@@ -1039,6 +1024,7 @@ function WaitingGameOverScreen({ players, myUserId, pendingPlayers, rivalCountdo
           <strong style={{color:"rgba(255,255,255,0.4)"}}>Los scores se comparan al final, no antes.</strong>
         </div>
       </div>
+
       <style>{`
         @keyframes waitPulse   { 0%,100%{opacity:1} 50%{opacity:0.25} }
         @keyframes iconBounce  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
@@ -1057,7 +1043,9 @@ function DuelCreatorScreen({ players, onFight, onPact }: {
   return (
     <div style={{ minHeight:"100vh", background:"#080810", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, gap:24, fontFamily:"'Arial Black',Impact,sans-serif", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", background:"radial-gradient(ellipse at center, rgba(249,115,22,0.08) 0%, transparent 70%)" }}/>
-      <div style={{ zIndex:1, background:"rgba(249,115,22,0.15)", border:"1px solid rgba(249,115,22,0.4)", borderRadius:20, padding:"4px 14px", fontSize:"0.62rem", letterSpacing:"0.2em", color:"#f97316", fontFamily:"'Segoe UI',sans-serif" }}>👑 TÚ DECIDÍS — ERES EL CREADOR</div>
+      <div style={{ zIndex:1, background:"rgba(249,115,22,0.15)", border:"1px solid rgba(249,115,22,0.4)", borderRadius:20, padding:"4px 14px", fontSize:"0.62rem", letterSpacing:"0.2em", color:"#f97316", fontFamily:"'Segoe UI',sans-serif" }}>
+        👑 TÚ DECIDÍS — ERES EL CREADOR
+      </div>
       <div style={{ fontSize:"0.65rem", letterSpacing:"0.4em", color:"#fff", opacity:0.4, zIndex:1 }}>¡EMPATE ÉPICO!</div>
       <h2 style={{ color:"#fff", margin:0, fontSize:"clamp(1.6rem,5vw,2.4rem)", textAlign:"center", zIndex:1 }}>MISMO PUNTAJE</h2>
       <div style={{ display:"flex", alignItems:"center", gap:24, zIndex:1 }}>
@@ -1070,12 +1058,18 @@ function DuelCreatorScreen({ players, onFight, onPact }: {
           Podés proponer una <strong style={{color:"#ef4444"}}>revancha</strong> con <strong style={{color:"#ef4444"}}>preguntas nuevas</strong><br/>
           (el rival debe aceptar o <strong style={{color:"#ef4444"}}>pierde automáticamente</strong>),<br/>
           o un <strong style={{color:"#f59e0b"}}>pacto de caballeros</strong>: ambos ganan <strong style={{color:"#f59e0b"}}>{PRIZE_PACT.toLocaleString()} pts</strong>.<br/>
-          <span style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)", marginTop:6, display:"block" }}>Si vuelven a empatar en la revancha → pacto automático.</span>
+          <span style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)", marginTop:6, display:"block" }}>
+            Si vuelven a empatar en la revancha → pacto automático.
+          </span>
         </div>
       </div>
       <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center", zIndex:1 }}>
-        <button onClick={onFight} style={{ background:"linear-gradient(135deg,#ef4444,#b91c1c)", border:"none", color:"#fff", fontWeight:900, padding:"16px 36px", borderRadius:14, cursor:"pointer", fontSize:"1rem", letterSpacing:"0.06em", boxShadow:"0 4px 24px rgba(239,68,68,0.5)", fontFamily:"'Arial Black',sans-serif", animation:"fightPulse 1.8s ease infinite" }}>⚔️ PROPONER REVANCHA</button>
-        <button onClick={onPact} style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", border:"none", color:"#000", fontWeight:900, padding:"16px 36px", borderRadius:14, cursor:"pointer", fontSize:"1rem", letterSpacing:"0.06em", boxShadow:"0 4px 24px rgba(245,158,11,0.4)", fontFamily:"'Arial Black',sans-serif" }}>🤝 PACTO DE CABALLEROS</button>
+        <button onClick={onFight} style={{ background:"linear-gradient(135deg,#ef4444,#b91c1c)", border:"none", color:"#fff", fontWeight:900, padding:"16px 36px", borderRadius:14, cursor:"pointer", fontSize:"1rem", letterSpacing:"0.06em", boxShadow:"0 4px 24px rgba(239,68,68,0.5)", fontFamily:"'Arial Black',sans-serif", animation:"fightPulse 1.8s ease infinite" }}>
+          ⚔️ PROPONER REVANCHA
+        </button>
+        <button onClick={onPact} style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", border:"none", color:"#000", fontWeight:900, padding:"16px 36px", borderRadius:14, cursor:"pointer", fontSize:"1rem", letterSpacing:"0.06em", boxShadow:"0 4px 24px rgba(245,158,11,0.4)", fontFamily:"'Arial Black',sans-serif" }}>
+          🤝 PACTO DE CABALLEROS
+        </button>
       </div>
       <style>{`@keyframes fightPulse { 0%,100%{box-shadow:0 4px 24px rgba(239,68,68,0.5)} 50%{box-shadow:0 4px 48px rgba(239,68,68,0.9)} }`}</style>
     </div>
@@ -1125,7 +1119,9 @@ function DuelWaitingResponseScreen({ players }: { players: BattlePlayer[] }) {
         <span style={{ fontSize:"0.85rem", color:"#9ca3af" }}>El rival debe aceptar o rechazar la revancha</span>
       </div>
       <div style={{ background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.2)", borderRadius:12, padding:"12px 20px", maxWidth:300, zIndex:1, fontFamily:"'Segoe UI',sans-serif", textAlign:"center" }}>
-        <div style={{ fontSize:"0.75rem", color:"rgba(255,255,255,0.4)", lineHeight:1.7 }}>Si el rival rechaza, <strong style={{color:"#ef4444"}}>pierde automáticamente</strong> y vos ganás.</div>
+        <div style={{ fontSize:"0.75rem", color:"rgba(255,255,255,0.4)", lineHeight:1.7 }}>
+          Si el rival rechaza, <strong style={{color:"#ef4444"}}>pierde automáticamente</strong> y vos ganás.
+        </div>
       </div>
       <div style={{ display:"flex", gap:16, zIndex:1 }}>
         {players.map(p => (
@@ -1151,7 +1147,9 @@ function DuelResponseScreen({ players, onAccept, onReject }: {
   return (
     <div style={{ minHeight:"100vh", background:"#080810", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, gap:24, fontFamily:"'Arial Black',Impact,sans-serif", position:"relative", overflow:"hidden" }}>
       <div style={{ position:"absolute", inset:0, pointerEvents:"none", background:"radial-gradient(ellipse at center, rgba(239,68,68,0.08) 0%, transparent 65%)" }}/>
-      <div style={{ zIndex:1, background:"rgba(239,68,68,0.15)", border:"1px solid rgba(239,68,68,0.4)", borderRadius:20, padding:"4px 14px", fontSize:"0.62rem", letterSpacing:"0.2em", color:"#ef4444", fontFamily:"'Segoe UI',sans-serif" }}>¡EL CREADOR TE DESAFÍA!</div>
+      <div style={{ zIndex:1, background:"rgba(239,68,68,0.15)", border:"1px solid rgba(239,68,68,0.4)", borderRadius:20, padding:"4px 14px", fontSize:"0.62rem", letterSpacing:"0.2em", color:"#ef4444", fontFamily:"'Segoe UI',sans-serif" }}>
+        ¡EL CREADOR TE DESAFÍA!
+      </div>
       <div style={{ fontSize:"3rem", zIndex:1 }}>⚔️</div>
       <h2 style={{ color:"#fff", margin:0, fontSize:"clamp(1.4rem,4vw,2rem)", textAlign:"center", zIndex:1 }}>Revancha propuesta</h2>
       <div style={{ display:"flex", alignItems:"center", gap:24, zIndex:1 }}>
@@ -1163,12 +1161,18 @@ function DuelResponseScreen({ players, onAccept, onReject }: {
         <div style={{ fontSize:"0.8rem", color:"rgba(255,255,255,0.5)", lineHeight:1.8 }}>
           ¿Aceptás la revancha con <strong style={{color:"#fff"}}>preguntas completamente nuevas</strong>?<br/>
           Si rechazás, <strong style={{color:"#ef4444"}}>perdés automáticamente</strong>.<br/>
-          <span style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)", display:"block", marginTop:4 }}>Solo hay 1 oportunidad de revancha.</span>
+          <span style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)", display:"block", marginTop:4 }}>
+            Solo hay 1 oportunidad de revancha.
+          </span>
         </div>
       </div>
       <div style={{ display:"flex", gap:14, zIndex:1 }}>
-        <button onClick={onReject} style={{ background:"rgba(239,68,68,0.08)", border:"1.5px solid rgba(239,68,68,0.3)", color:"#ef4444", fontWeight:900, padding:"14px 28px", borderRadius:12, cursor:"pointer", fontSize:"0.9rem", letterSpacing:"0.04em", fontFamily:"'Arial Black',sans-serif" }}>✗ RECHAZAR (y perder)</button>
-        <button onClick={onAccept} style={{ background:"linear-gradient(135deg,#ef4444,#b91c1c)", border:"none", color:"#fff", fontWeight:900, padding:"14px 32px", borderRadius:12, cursor:"pointer", fontSize:"0.9rem", letterSpacing:"0.06em", boxShadow:"0 4px 24px rgba(239,68,68,0.5)", fontFamily:"'Arial Black',sans-serif", animation:"fightPulse 1.5s ease infinite" }}>⚔️ ¡ACEPTAR REVANCHA!</button>
+        <button onClick={onReject} style={{ background:"rgba(239,68,68,0.08)", border:"1.5px solid rgba(239,68,68,0.3)", color:"#ef4444", fontWeight:900, padding:"14px 28px", borderRadius:12, cursor:"pointer", fontSize:"0.9rem", letterSpacing:"0.04em", fontFamily:"'Arial Black',sans-serif" }}>
+          ✗ RECHAZAR (y perder)
+        </button>
+        <button onClick={onAccept} style={{ background:"linear-gradient(135deg,#ef4444,#b91c1c)", border:"none", color:"#fff", fontWeight:900, padding:"14px 32px", borderRadius:12, cursor:"pointer", fontSize:"0.9rem", letterSpacing:"0.06em", boxShadow:"0 4px 24px rgba(239,68,68,0.5)", fontFamily:"'Arial Black',sans-serif", animation:"fightPulse 1.5s ease infinite" }}>
+          ⚔️ ¡ACEPTAR REVANCHA!
+        </button>
       </div>
       <style>{`@keyframes fightPulse { 0%,100%{box-shadow:0 4px 24px rgba(239,68,68,0.5)} 50%{box-shadow:0 4px 48px rgba(239,68,68,0.9)} }`}</style>
     </div>
@@ -1193,7 +1197,8 @@ function DuelRejectedResultScreen({ players, winnerId, myUserId, onFinalize }: {
         {amWinner ? "¡GANASTE!" : "PERDISTE"}
       </h2>
       <p style={{ color:"rgba(255,255,255,0.4)", fontSize:"0.85rem", fontFamily:"'Segoe UI',sans-serif", textAlign:"center", maxWidth:290, lineHeight:1.7, zIndex:1, margin:0 }}>
-        {loser?.username} rechazó la revancha y pierde automáticamente.{amWinner && ` ¡${PRIZE_WIN.toLocaleString()} pts para vos!`}
+        {loser?.username} rechazó la revancha y pierde automáticamente.
+        {amWinner && ` ¡${PRIZE_WIN.toLocaleString()} pts para vos!`}
       </p>
       <div style={{ display:"flex", flexDirection:"column", gap:10, width:"100%", maxWidth:360, zIndex:1 }}>
         {[winner, loser].filter(Boolean).map((p, i) => p && (
@@ -1201,14 +1206,20 @@ function DuelRejectedResultScreen({ players, winnerId, myUserId, onFinalize }: {
             <span style={{ fontSize:"1.4rem" }}>{i === 0 ? "🏆" : "💀"}</span>
             <AvatarMed url={p.avatarUrl} name={p.username} size={40} style={{ filter: i === 1 ? "grayscale(80%) brightness(0.5)" : "none" }}/>
             <div style={{ flex:1 }}>
-              <div style={{ color: i === 0 ? "#22c55e" : "#6b7280", fontFamily:"'Segoe UI',sans-serif", fontWeight:700, fontSize:"0.85rem" }}>{p.username}{p.userId === myUserId && " (tú)"}</div>
-              <div style={{ fontSize:"0.65rem", color: i === 0 ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.2)", fontFamily:"'Segoe UI',sans-serif" }}>{i === 0 ? `Gana ${PRIZE_WIN.toLocaleString()} pts` : "Rechazó la revancha"}</div>
+              <div style={{ color: i === 0 ? "#22c55e" : "#6b7280", fontFamily:"'Segoe UI',sans-serif", fontWeight:700, fontSize:"0.85rem" }}>
+                {p.username}{p.userId === myUserId && " (tú)"}
+              </div>
+              <div style={{ fontSize:"0.65rem", color: i === 0 ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.2)", fontFamily:"'Segoe UI',sans-serif" }}>
+                {i === 0 ? `Gana ${PRIZE_WIN.toLocaleString()} pts` : "Rechazó la revancha"}
+              </div>
             </div>
             <div style={{ fontSize:"1rem", fontWeight:900, color: i === 0 ? "#22c55e" : "#4b5563" }}>{p.score.toLocaleString()}</div>
           </div>
         ))}
       </div>
-      <button onClick={onFinalize} style={{ background:"linear-gradient(135deg,#f97316,#e05000)", border:"none", color:"#fff", fontWeight:900, padding:"14px 48px", borderRadius:12, cursor:"pointer", fontSize:"0.95rem", letterSpacing:"0.08em", boxShadow:"0 4px 24px rgba(249,115,22,0.4)", zIndex:1, fontFamily:"'Arial Black',sans-serif" }}>FINALIZAR BATALLA</button>
+      <button onClick={onFinalize} style={{ background:"linear-gradient(135deg,#f97316,#e05000)", border:"none", color:"#fff", fontWeight:900, padding:"14px 48px", borderRadius:12, cursor:"pointer", fontSize:"0.95rem", letterSpacing:"0.08em", boxShadow:"0 4px 24px rgba(249,115,22,0.4)", zIndex:1, fontFamily:"'Arial Black',sans-serif" }}>
+        FINALIZAR BATALLA
+      </button>
     </div>
   );
 }
@@ -1236,7 +1247,9 @@ function PactScreen({ players, onFinalize }: { players: BattlePlayer[]; onFinali
           </div>
         ))}
       </div>
-      <button onClick={onFinalize} style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", border:"none", color:"#000", fontWeight:900, padding:"14px 48px", borderRadius:12, cursor:"pointer", fontSize:"0.95rem", letterSpacing:"0.06em", boxShadow:"0 4px 20px rgba(245,158,11,0.4)", zIndex:1, fontFamily:"'Arial Black',sans-serif" }}>CONFIRMAR Y FINALIZAR</button>
+      <button onClick={onFinalize} style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", border:"none", color:"#000", fontWeight:900, padding:"14px 48px", borderRadius:12, cursor:"pointer", fontSize:"0.95rem", letterSpacing:"0.06em", boxShadow:"0 4px 20px rgba(245,158,11,0.4)", zIndex:1, fontFamily:"'Arial Black',sans-serif" }}>
+        CONFIRMAR Y FINALIZAR
+      </button>
     </div>
   );
 }
@@ -1285,7 +1298,9 @@ function FinalResultScreen({ players, winnerId, myUserId, onFinalize }: { player
           );
         })}
       </div>
-      <button onClick={onFinalize} style={{ background:"linear-gradient(135deg,#f97316,#e05000)", border:"none", color:"#fff", fontWeight:900, padding:"14px 48px", borderRadius:12, cursor:"pointer", fontSize:"0.95rem", letterSpacing:"0.08em", boxShadow:"0 4px 24px rgba(249,115,22,0.4)", zIndex:1, marginTop:8, fontFamily:"'Arial Black',sans-serif" }}>FINALIZAR BATALLA</button>
+      <button onClick={onFinalize} style={{ background:"linear-gradient(135deg,#f97316,#e05000)", border:"none", color:"#fff", fontWeight:900, padding:"14px 48px", borderRadius:12, cursor:"pointer", fontSize:"0.95rem", letterSpacing:"0.08em", boxShadow:"0 4px 24px rgba(249,115,22,0.4)", zIndex:1, marginTop:8, fontFamily:"'Arial Black',sans-serif" }}>
+        FINALIZAR BATALLA
+      </button>
       <style>{`@keyframes confettiFall { 0%{transform:translateY(-10px) rotate(0deg);opacity:0.6} 100%{transform:translateY(60px) rotate(180deg);opacity:0} }`}</style>
     </div>
   );
