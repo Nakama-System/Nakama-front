@@ -154,7 +154,7 @@ export default function DashboardPage() {
             </a>
             <span className="dashboard-breadcrumb">/ mi-panel</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="dashboard-header-right">
             {user.role === "superadmin" && (
               <a
                 href="/superadmin"
