@@ -1,4 +1,3 @@
-// dashboard/page.tsx
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -7,7 +6,7 @@ import {
   Crown, AlertTriangle, X, ChevronRight, ArrowLeft,
   Check, Link, Instagram, Globe, KeyRound, Bell, BellOff,
   RefreshCw, FolderOpen, Info, Lock, Loader2, CheckCircle2,
-  XCircle, BadgeAlert, House, LayoutDashboard,
+  XCircle, BadgeAlert, House, LayoutDashboard, BookOpen,
 } from "lucide-react";
 import "../styles/dashboard.css";
 
@@ -43,6 +42,7 @@ interface DashboardUser {
 interface Toast { id: number; type: "success" | "error" | "info"; message: string; icon: React.ReactNode; }
 
 // ── API base ────────────────────────────────────────────────
+// ✅ CORREGIDO: apunta al backend real
 const API = "https://nakama-backend-render.onrender.com";
 
 async function apiFetch(path: string, opts: RequestInit = {}) {
@@ -63,8 +63,12 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
 
 // ── Badge de rol ─────────────────────────────────────────────
 const ROLE_LABELS: Record<string, string> = {
-  "user": "Usuario", "user-pro": "Pro", "user-premium": "Premium",
-  "moderator": "Moderador", "admin": "Admin", "superadmin": "Super Admin",
+  "user":       "Usuario",
+  "user-pro":   "Pro",
+  "user-premium":"Premium",
+  "moderator":  "Moderador",
+  "admin":      "Admin",
+  "superadmin": "Super Admin",
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -75,12 +79,10 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-// ── Spinner inline ────────────────────────────────────────────
 function Spinner() {
   return <Loader2 size={14} style={{ animation: "spin 0.6s linear infinite", flexShrink: 0 }} />;
 }
 
-// ── Toast ─────────────────────────────────────────────────────
 function ToastContainer({ toasts }: { toasts: Toast[] }) {
   return (
     <div className="toast-container">
@@ -121,7 +123,8 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const isAdmin = user && ["admin", "superadmin"].includes(user.role);
+  const isSuperAdmin = user?.role === "superadmin";
+  const isAdmin      = user && ["admin", "superadmin"].includes(user.role);
 
   if (loading) return <DashboardSkeleton />;
   if (!user) return (
@@ -154,8 +157,11 @@ export default function DashboardPage() {
             </a>
             <span className="dashboard-breadcrumb">/ mi-panel</span>
           </div>
+
           <div className="dashboard-header-right">
-            {user.role === "superadmin" && (
+
+            {/* ✅ Botón Superadmin — solo para superadmin */}
+            {isSuperAdmin && (
               <a
                 href="/superadmin"
                 className="btn btn-sm"
@@ -181,6 +187,35 @@ export default function DashboardPage() {
                 Superadmin
               </a>
             )}
+
+            {/* ✅ Botón Banco de preguntas — SOLO superadmin */}
+            {isSuperAdmin && (
+              <a
+                href="/categoriagame"
+                className="btn btn-sm"
+                title="Banco de preguntas"
+                style={{
+                  padding: "6px 12px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "linear-gradient(135deg,rgba(0,200,255,0.12),rgba(0,200,255,0.06))",
+                  border: "1px solid rgba(0,200,255,0.3)",
+                  color: "#00c8ff",
+                  borderRadius: "var(--radius-sm)",
+                  fontFamily: "var(--font-display)",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  textDecoration: "none",
+                  textTransform: "uppercase",
+                }}
+              >
+                <BookOpen size={13} />
+                Preguntas
+              </a>
+            )}
+
             <RoleBadge role={user.role} />
           </div>
         </header>
@@ -252,7 +287,10 @@ export default function DashboardPage() {
                 <span className="dash-card-title">Cuenta</span>
               </div>
               <div className="dash-card-body" style={{ padding: "16px 20px" }}>
-                <InfoRow label="Miembro desde" value={new Date(user.createdAt).toLocaleDateString("es-AR", { year: "numeric", month: "long" })} />
+                <InfoRow
+                  label="Miembro desde"
+                  value={new Date(user.createdAt).toLocaleDateString("es-AR", { year: "numeric", month: "long" })}
+                />
                 <InfoRow label="Suscripción" value={user.subscription.type.toUpperCase()} colored />
                 <InfoRow label="Google vinculado" value={user.googleLinked ? "Sí" : "No"} />
                 {user.isBanned    && <InfoRow label="Estado" value="BANEADO"    danger />}
@@ -260,7 +298,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Admin extra */}
+            {/* Panel Admin — para admin y superadmin */}
             {isAdmin && (
               <div className="admin-panel dash-card">
                 <div className="dash-card-header">
@@ -277,6 +315,40 @@ export default function DashboardPage() {
                     <div className="admin-stat-label">Acciones mod.</div>
                   </div>
                 </div>
+
+                {/* ✅ Acceso rápido a Banco de preguntas — solo superadmin, dentro del panel admin */}
+                {isSuperAdmin && (
+                  <div style={{ padding: "12px 16px 16px", borderTop: "1px solid var(--border)" }}>
+                    <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
+                      Gestión de contenido
+                    </p>
+                    <a
+                      href="/categoriagame"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 14px",
+                        borderRadius: "var(--radius-sm)",
+                        background: "rgba(0,200,255,0.06)",
+                        border: "1px solid rgba(0,200,255,0.2)",
+                        textDecoration: "none",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <BookOpen size={15} color="#00c8ff" />
+                      <div>
+                        <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#00c8ff" }}>
+                          Banco de preguntas
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 1 }}>
+                          CRUD · Subir Word · Ver estadísticas
+                        </div>
+                      </div>
+                      <ChevronRight size={13} color="rgba(0,200,255,0.4)" style={{ marginLeft: "auto" }} />
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </aside>
@@ -395,7 +467,6 @@ function InfoRow({ label, value, colored = false, danger = false }: {
   );
 }
 
-// ── Botón eliminar avatar ────────────────────────────────────
 function DeleteAvatarButton({ userId, onSuccess }: { userId: string; onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const handle = async () => {
@@ -427,7 +498,7 @@ function ProfileTab({ user, onUpdate, addToast }: {
     facebook:    user.socialLinks?.facebook  || "",
   });
   const [saving, setSaving] = useState(false);
-  const [dirty, setDirty]   = useState(false);
+  const [dirty,  setDirty]  = useState(false);
 
   const set = (k: string, v: string) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
 
@@ -456,48 +527,40 @@ function ProfileTab({ user, onUpdate, addToast }: {
         <span className="dash-card-title">Editar perfil público</span>
       </div>
       <div className="dash-card-body">
-
         <div className="form-group">
           <label className="form-label">Nombre de display</label>
           <input className="form-input" value={form.displayName} onChange={e => set("displayName", e.target.value)} maxLength={50} placeholder="Tu nombre visible" />
           <p className="form-hint">{form.displayName.length}/50 caracteres</p>
         </div>
-
         <div className="form-group">
           <label className="form-label">Bio</label>
           <textarea className="form-textarea" rows={3} value={form.bio} onChange={e => set("bio", e.target.value)} maxLength={300} placeholder="Contá algo sobre vos..." />
           <p className="form-hint">{form.bio.length}/300 caracteres</p>
         </div>
-
         <div className="form-group">
           <label className="form-label">Blog / Sitio web</label>
           <input className="form-input" value={form.blogUrl} onChange={e => set("blogUrl", e.target.value)} placeholder="https://tu-sitio.com" type="url" />
         </div>
-
         <div className="divider" />
         <p className="form-label" style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
           <Link size={11} /> Redes sociales
         </p>
-
         <div className="form-group">
           <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <Instagram size={11} /> Instagram
           </label>
           <input className="form-input" value={form.instagram} onChange={e => set("instagram", e.target.value)} placeholder="@usuario" />
         </div>
-
         <div className="form-group">
           <label className="form-label">TikTok</label>
           <input className="form-input" value={form.tiktok} onChange={e => set("tiktok", e.target.value)} placeholder="@usuario" />
         </div>
-
         <div className="form-group">
           <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <Globe size={11} /> Facebook
           </label>
           <input className="form-input" value={form.facebook} onChange={e => set("facebook", e.target.value)} placeholder="usuario o URL" />
         </div>
-
         <div className="divider" />
         <button className="btn btn-primary btn-full" onClick={handleSave} disabled={saving || !dirty}>
           {saving ? <><Spinner /> Guardando…</> : <><Save size={14} /> Guardar cambios</>}
@@ -534,7 +597,6 @@ function AccountTab({ user, onEmailOpen, onUsernameUpdate, addToast }: {
         <span className="dash-card-title">Datos de cuenta</span>
       </div>
       <div className="dash-card-body">
-
         <div className="form-group">
           <label className="form-label">Username</label>
           <input className="form-input" value={newUsername} onChange={e => setNewUsername(e.target.value)} maxLength={30} />
@@ -543,9 +605,7 @@ function AccountTab({ user, onEmailOpen, onUsernameUpdate, addToast }: {
         <button className="btn btn-secondary btn-sm" onClick={handleUsername} disabled={saving || !dirty} style={{ marginBottom: 24 }}>
           {saving ? <><Spinner /> Guardando…</> : <><Check size={13} /> Actualizar username</>}
         </button>
-
         <div className="divider" />
-
         <div className="form-group">
           <label className="form-label">Email actual</label>
           <input className="form-input" value={user.email} disabled />
@@ -554,9 +614,7 @@ function AccountTab({ user, onEmailOpen, onUsernameUpdate, addToast }: {
         <button className="btn btn-secondary btn-full" onClick={onEmailOpen}>
           <Mail size={14} /> Cambiar email
         </button>
-
         <div className="divider" />
-
         <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: 16 }}>
           <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Plan actual</p>
           <p style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: user.subscription.type === "free" ? "var(--text-secondary)" : "var(--gold)" }}>
@@ -624,14 +682,13 @@ function SecurityTab({ user, onPasswordOpen, onDeleteOpen }: {
 // MODALES
 // ════════════════════════════════════════════════════════════
 
-// ── Modal: Avatar ────────────────────────────────────────────
 function AvatarModal({ onClose, onSuccess, addToast }: {
   onClose: () => void;
   onSuccess: (url: string) => void;
   addToast: any;
 }) {
-  const [preview, setPreview]     = useState<string | null>(null);
-  const [file, setFile]           = useState<File | null>(null);
+  const [preview,   setPreview]   = useState<string | null>(null);
+  const [file,      setFile]      = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -647,7 +704,7 @@ function AvatarModal({ onClose, onSuccess, addToast }: {
     setUploading(true);
     try {
       const token = localStorage.getItem("nakama_token");
-      const fd = new FormData();
+      const fd    = new FormData();
       fd.append("avatar", file);
       const res = await fetch(`${API}/dashboard/avatar`, {
         method: "PATCH",
@@ -696,17 +753,16 @@ function AvatarModal({ onClose, onSuccess, addToast }: {
   );
 }
 
-// ── Modal: Cambiar email ─────────────────────────────────────
 function EmailModal({ onClose, onSuccess, addToast, currentEmail }: {
   onClose: () => void;
   onSuccess: (email: string) => void;
   addToast: any;
   currentEmail: string;
 }) {
-  const [step, setStep]         = useState<1 | 2>(1);
+  const [step,     setStep]     = useState<1 | 2>(1);
   const [newEmail, setNewEmail] = useState("");
-  const [code, setCode]         = useState(["", "", "", "", "", ""]);
-  const [loading, setLoading]   = useState(false);
+  const [code,     setCode]     = useState(["", "", "", "", "", ""]);
+  const [loading,  setLoading]  = useState(false);
   const codeRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
 
   const handleRequest = async () => {
@@ -721,9 +777,7 @@ function EmailModal({ onClose, onSuccess, addToast, currentEmail }: {
 
   const handleDigit = (i: number, v: string) => {
     if (!/^\d?$/.test(v)) return;
-    const next = [...code];
-    next[i] = v;
-    setCode(next);
+    const next = [...code]; next[i] = v; setCode(next);
     if (v && i < 5) codeRefs[i + 1].current?.focus();
   };
 
@@ -750,7 +804,6 @@ function EmailModal({ onClose, onSuccess, addToast, currentEmail }: {
           <button className="modal-close" onClick={onClose}><X size={15} /></button>
         </div>
         <div className="modal-body">
-
           <div className="email-stepper">
             <div className="step-item">
               <span className={`step-num ${step >= 1 ? "active" : ""} ${step > 1 ? "done" : ""}`}>
@@ -775,9 +828,7 @@ function EmailModal({ onClose, onSuccess, addToast, currentEmail }: {
                 <input className="form-input" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="nuevo@email.com" />
               </div>
               <button className="btn btn-primary btn-full" onClick={handleRequest} disabled={loading || !newEmail}>
-                {loading
-                  ? <><Spinner /> Enviando…</>
-                  : <>Enviar código de verificación <ChevronRight size={14} /></>}
+                {loading ? <><Spinner /> Enviando…</> : <>Enviar código de verificación <ChevronRight size={14} /></>}
               </button>
             </>
           )}
@@ -790,13 +841,8 @@ function EmailModal({ onClose, onSuccess, addToast, currentEmail }: {
               <div className="code-inputs">
                 {code.map((d, i) => (
                   <input
-                    key={i}
-                    ref={codeRefs[i]}
-                    className="code-input-digit"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={d}
+                    key={i} ref={codeRefs[i]} className="code-input-digit"
+                    type="text" inputMode="numeric" maxLength={1} value={d}
                     onChange={e => handleDigit(i, e.target.value)}
                     onKeyDown={e => handleKeyDown(i, e)}
                   />
@@ -816,15 +862,14 @@ function EmailModal({ onClose, onSuccess, addToast, currentEmail }: {
   );
 }
 
-// ── Modal: Cambiar contraseña ────────────────────────────────
 function PasswordModal({ onClose, onSuccess, addToast }: {
   onClose: () => void;
   onSuccess: () => void;
   addToast: any;
 }) {
-  const [form, setForm]       = useState({ current: "", newPass: "", confirm: "" });
+  const [form,    setForm]    = useState({ current: "", newPass: "", confirm: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [error,   setError]   = useState("");
 
   const handleSave = async () => {
     setError("");
@@ -862,9 +907,7 @@ function PasswordModal({ onClose, onSuccess, addToast }: {
             <label className="form-label">Confirmar nueva contraseña</label>
             <input className="form-input" type="password" value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} />
           </div>
-          {error && (
-            <p className="form-error"><AlertTriangle size={12} /> {error}</p>
-          )}
+          {error && <p className="form-error"><AlertTriangle size={12} /> {error}</p>}
           <div style={{ background: "var(--gold-dim)", border: "1px solid rgba(255,209,102,0.2)", borderRadius: "var(--radius-sm)", padding: "10px 14px", fontSize: "0.78rem", color: "var(--gold)", marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
             <AlertTriangle size={13} /> Cambiar la contraseña cerrará todas tus otras sesiones activas.
           </div>
@@ -880,19 +923,17 @@ function PasswordModal({ onClose, onSuccess, addToast }: {
   );
 }
 
-// ── Modal: Eliminar cuenta ───────────────────────────────────
 function DeleteModal({ onClose, username }: { onClose: () => void; username: string }) {
-  const [password, setPassword]     = useState("");
+  const [password,   setPassword]   = useState("");
   const [keepNotifs, setKeepNotifs] = useState(true);
-  const [confirm, setConfirm]       = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState("");
+  const [confirm,    setConfirm]    = useState("");
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
 
   const canDelete = confirm === username && password.length >= 8;
 
   const handleDelete = async () => {
-    setError("");
-    setLoading(true);
+    setError(""); setLoading(true);
     try {
       await apiFetch("/dashboard/account", {
         method: "DELETE",
@@ -913,11 +954,8 @@ function DeleteModal({ onClose, username }: { onClose: () => void; username: str
           <button className="modal-close" onClick={onClose}><X size={15} /></button>
         </div>
         <div className="modal-body">
-
           <div className="delete-warning">
-            <p className="delete-warning-title">
-              <AlertTriangle size={13} /> Esto eliminará permanentemente:
-            </p>
+            <p className="delete-warning-title"><AlertTriangle size={13} /> Esto eliminará permanentemente:</p>
             <ul className="delete-warning-list">
               <li>Tu perfil y todos tus datos personales</li>
               <li>Todas tus publicaciones y comentarios</li>
@@ -926,7 +964,6 @@ function DeleteModal({ onClose, username }: { onClose: () => void; username: str
               <li>Tu avatar y videos de perfil</li>
             </ul>
           </div>
-
           <div className="notif-toggle" onClick={() => setKeepNotifs(k => !k)}>
             <div className={`toggle-switch ${keepNotifs ? "on" : ""}`}>
               <div className="toggle-knob" />
@@ -939,25 +976,21 @@ function DeleteModal({ onClose, username }: { onClose: () => void; username: str
               <p>Podemos avisarte sobre nuevas funciones, eventos especiales o cuando tengamos algo importante que compartir.</p>
             </div>
           </div>
-
           <div className="form-group">
             <label className="form-label">Tu contraseña</label>
             <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Ingresá tu contraseña" />
           </div>
-
           <div className="form-group">
             <label className="form-label">
               Escribí <strong style={{ color: "var(--red)", fontFamily: "var(--font-mono)" }}>@{username}</strong> para confirmar
             </label>
             <input
-              className="form-input"
-              value={confirm}
+              className="form-input" value={confirm}
               onChange={e => setConfirm(e.target.value)}
               placeholder={`@${username}`}
               style={{ borderColor: confirm && confirm !== username ? "var(--red)" : undefined }}
             />
           </div>
-
           {error && <p className="form-error"><AlertTriangle size={12} /> {error}</p>}
         </div>
         <div className="modal-footer">
@@ -971,7 +1004,6 @@ function DeleteModal({ onClose, username }: { onClose: () => void; username: str
   );
 }
 
-// ── Skeleton ─────────────────────────────────────────────────
 function DashboardSkeleton() {
   return (
     <div className="dashboard-root">
